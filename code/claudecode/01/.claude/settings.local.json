@@ -9,7 +9,11 @@
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
       "Bash(npx tsup:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(kill:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(curl:*)"
     ]
   }
 }

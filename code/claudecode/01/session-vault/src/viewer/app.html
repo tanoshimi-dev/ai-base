@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session Vault</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-input: #0f3460;
+  --text: #e0e0e0;
+  --text-muted: #8a8a9a;
+  --accent: #e94560;
+  --accent-hover: #ff6b81;
+  --border: #2a2a4a;
+  --tag-bg: #0f3460;
+  --tag-text: #a8d8ea;
+  --user-bg: #1b2838;
+  --claude-bg: #162447;
+  --code-bg: #0d1117;
+  --scrollbar: #2a2a4a;
+  --success: #4ade80;
+}
+.light {
+  --bg: #ffffff;
+  --bg-card: #f8f9fa;
+  --bg-input: #e9ecef;
+  --text: #333333;
+  --text-muted: #6c757d;
+  --accent: #e94560;
+  --accent-hover: #d63851;
+  --border: #dee2e6;
+  --tag-bg: #e3f2fd;
+  --tag-text: #1565c0;
+  --user-bg: #f0f4f8;
+  --claude-bg: #e8edf2;
+  --code-bg: #f5f5f5;
+  --scrollbar: #ced4da;
+  --success: #16a34a;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 100;
+}
+.header h1 { font-size: 1.25rem; font-weight: 700; }
+.header-controls { display: flex; gap: 0.75rem; align-items: center; }
+.search-box {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.875rem;
+  width: 240px;
+  outline: none;
+}
+.search-box:focus { border-color: var(--accent); }
+.search-box::placeholder { color: var(--text-muted); }
+select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.875rem;
+  outline: none;
+  cursor: pointer;
+}
+.btn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+
+/* Main container */
+.container { max-width: 960px; margin: 0 auto; padding: 1.5rem 2rem; }
+
+/* Stats bar */
+.stats-bar {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.75rem 0;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.stats-bar span { display: flex; align-items: center; gap: 0.25rem; }
+
+/* Tag chips */
+.tag-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.tag-chip {
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  font-size: 0.75rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.tag-chip:hover, .tag-chip.active { border-color: var(--accent); }
+.tag-chip .count { opacity: 0.6; margin-left: 0.25rem; }
+
+/* Conversation cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.card:hover, .card.selected { border-color: var(--accent); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.card-date { color: var(--text-muted); font-size: 0.8rem; }
+.card-project {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.card-summary { font-size: 0.9rem; margin-bottom: 0.5rem; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; }
+.card-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.card-tag {
+  padding: 0.1rem 0.4rem;
+  border-radius: 8px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  font-size: 0.7rem;
+}
+.card-msgs { color: var(--text-muted); font-size: 0.75rem; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Detail view */
+.detail-header { margin-bottom: 1.5rem; }
+.detail-back { display: inline-block; margin-bottom: 1rem; font-size: 0.875rem; }
+.detail-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+.detail-meta { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem; }
+.detail-note {
+  background: var(--bg-card);
+  border-left: 3px solid var(--accent);
+  padding: 0.5rem 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.detail-tags { display: flex; gap: 0.4rem; margin: 0.75rem 0; flex-wrap: wrap; }
+
+/* Messages */
+.message {
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.message.user { background: var(--user-bg); border-left: 3px solid #4a9eff; }
+.message.assistant { background: var(--claude-bg); border-left: 3px solid var(--accent); }
+.message-role {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+}
+.message.user .message-role { color: #4a9eff; }
+.message.assistant .message-role { color: var(--accent); }
+.message-content { font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word; }
+.message-content p { margin-bottom: 0.5rem; }
+.message-content h1, .message-content h2, .message-content h3 { margin: 1rem 0 0.5rem; }
+
+/* Code blocks */
+.code-wrapper { position: relative; margin: 0.75rem 0; }
+.code-wrapper pre {
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.code-wrapper code { color: var(--text); }
+.copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.code-wrapper:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { color: var(--text); border-color: var(--accent); }
+.copy-btn.copied { color: var(--success); border-color: var(--success); }
+
+/* Inline code */
+.message-content code:not(pre code) {
+  background: var(--code-bg);
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+/* Empty state */
+.empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+.empty h2 { margin-bottom: 0.5rem; font-size: 1.25rem; }
+
+/* Keyboard hint */
+.kbd {
+  display: inline-block;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+}
+
+/* Loading */
+.loading { text-align: center; padding: 2rem; color: var(--text-muted); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+  .search-box { width: 100%; }
+  .container { padding: 1rem; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1><a href="#/" style="color:var(--text)">Session Vault</a></h1>
+  <div class="header-controls">
+    <input type="text" class="search-box" id="search" placeholder="Search... ( / )">
+    <select id="projectFilter"><option value="">All projects</option></select>
+    <select id="sortOrder">
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+      <option value="messages">Most messages</option>
+    </select>
+    <button class="btn" id="themeToggle" title="Toggle theme (t)">Theme</button>
+  </div>
+</div>
+<div class="container" id="app">
+  <div class="loading">Loading...</div>
+</div>
+
+<script>
+(function() {
+  const $ = (s, p) => (p || document).querySelector(s);
+  const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
+
+  // State
+  let conversations = [];
+  let allTags = [];
+  let activeTag = '';
+  let selectedIndex = -1;
+  let currentPage = 0;
+  const PAGE_SIZE = 20;
+
+  // Theme
+  const theme = localStorage.getItem('sv-theme') || 'dark';
+  if (theme === 'light') document.documentElement.classList.add('light');
+
+  $('#themeToggle').addEventListener('click', toggleTheme);
+  function toggleTheme() {
+    document.documentElement.classList.toggle('light');
+    localStorage.setItem('sv-theme',
+      document.documentElement.classList.contains('light') ? 'light' : 'dark');
+  }
+
+  // API helpers
+  async function api(path) {
+    const res = await fetch('/api' + path);
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json();
+  }
+
+  async function apiDelete(path) {
+    const res = await fetch('/api' + path, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json();
+  }
+
+  // Markdown renderer (minimal)
+  function renderMd(text) {
+    let html = escapeHtml(text);
+    // Fenced code blocks
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+      const id = 'cb-' + Math.random().toString(36).slice(2, 8);
+      return `<div class="code-wrapper"><button class="copy-btn" data-copy="${id}">Copy</button><pre><code id="${id}" class="language-${lang || 'text'}">${code}</code></pre></div>`;
+    });
+    // Headers
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Inline code (but not inside pre)
+    html = html.replace(/(?<!<code[^>]*>.*)`([^`]+)`/g, '<code>$1</code>');
+    // HR
+    html = html.replace(/^---$/gm, '<hr>');
+    // Paragraphs
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = '<p>' + html + '</p>';
+    return html;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Router (hash-based)
+  function route() {
+    const hash = location.hash || '#/';
+    if (hash.startsWith('#/conversation/')) {
+      const id = hash.slice('#/conversation/'.length);
+      showDetail(id);
+    } else {
+      showDashboard();
+    }
+  }
+  window.addEventListener('hashchange', route);
+
+  // Dashboard
+  async function showDashboard() {
+    selectedIndex = -1;
+    const app = $('#app');
+    app.innerHTML = '<div class="loading">Loading...</div>';
+
+    try {
+      const [convoData, tagData, statsData, projData] = await Promise.all([
+        api('/conversations?limit=1000'),
+        api('/tags'),
+        api('/stats'),
+        api('/projects'),
+      ]);
+
+      conversations = convoData.conversations || [];
+      allTags = tagData.tags || [];
+
+      // Populate project filter
+      const projSelect = $('#projectFilter');
+      projSelect.innerHTML = '<option value="">All projects</option>';
+      (projData.projects || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = `${p.name} (${p.count})`;
+        projSelect.appendChild(opt);
+      });
+
+      renderDashboard(statsData);
+    } catch (err) {
+      app.innerHTML = `<div class="empty"><h2>Error loading data</h2><p>${escapeHtml(err.message)}</p></div>`;
+    }
+  }
+
+  function getFiltered() {
+    let items = [...conversations];
+    const q = $('#search').value.toLowerCase().trim();
+    const proj = $('#projectFilter').value;
+    const sort = $('#sortOrder').value;
+
+    if (q) {
+      items = items.filter(c =>
+        c.summary.toLowerCase().includes(q) ||
+        (c.note || '').toLowerCase().includes(q) ||
+        c.tags.some(t => t.toLowerCase().includes(q)) ||
+        c.project.toLowerCase().includes(q)
+      );
+    }
+    if (proj) {
+      items = items.filter(c => c.project === proj);
+    }
+    if (activeTag) {
+      items = items.filter(c => c.tags.some(t => t.toLowerCase() === activeTag.toLowerCase()));
+    }
+
+    if (sort === 'oldest') {
+      items.sort((a,b) => new Date(a.saved_at).getTime() - new Date(b.saved_at).getTime());
+    } else if (sort === 'messages') {
+      items.sort((a,b) => b.message_count - a.message_count);
+    } else {
+      items.sort((a,b) => new Date(b.saved_at).getTime() - new Date(a.saved_at).getTime());
+    }
+
+    return items;
+  }
+
+  function renderDashboard(stats) {
+    const app = $('#app');
+    const filtered = getFiltered();
+    const total = filtered.length;
+    const start = currentPage * PAGE_SIZE;
+    const page = filtered.slice(start, start + PAGE_SIZE);
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+
+    let html = '';
+
+    // Stats
+    if (stats) {
+      html += `<div class="stats-bar">
+        <span>${stats.total_conversations} conversations</span>
+        <span>${stats.total_messages} messages</span>
+        <span>${stats.projects_count} projects</span>
+        <span>${stats.tags_count} tags</span>
+      </div>`;
+    }
+
+    // Tags
+    if (allTags.length > 0) {
+      html += '<div class="tag-bar">';
+      allTags.forEach(t => {
+        const isActive = activeTag.toLowerCase() === t.name.toLowerCase();
+        html += `<span class="tag-chip${isActive ? ' active' : ''}" data-tag="${escapeHtml(t.name)}">${escapeHtml(t.name)}<span class="count">${t.count}</span></span>`;
+      });
+      html += '</div>';
+    }
+
+    // Cards
+    if (page.length === 0) {
+      html += '<div class="empty"><h2>No conversations found</h2><p>Save some conversations to see them here.</p></div>';
+    } else {
+      page.forEach((c, i) => {
+        const date = new Date(c.saved_at).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+        const tags = c.tags.map(t => `<span class="card-tag">${escapeHtml(t)}</span>`).join('');
+        const idx = start + i;
+        html += `<div class="card${idx === selectedIndex ? ' selected' : ''}" data-id="${c.id}" data-idx="${idx}">
+          <div class="card-header">
+            <span class="card-date">${date}</span>
+            <span class="card-project">${escapeHtml(c.project)}</span>
+          </div>
+          <div class="card-summary">${escapeHtml(c.summary)}</div>
+          <div class="card-footer">
+            <div class="card-tags">${tags}</div>
+            <span class="card-msgs">${c.message_count} msgs</span>
+          </div>
+        </div>`;
+      });
+    }
+
+    // Pagination
+    if (totalPages > 1) {
+      html += `<div class="pagination">
+        <span>Showing ${start+1}-${Math.min(start+PAGE_SIZE, total)} of ${total}</span>
+        <div>
+          <button class="btn btn-sm" id="prevPage" ${currentPage === 0 ? 'disabled' : ''}>Prev</button>
+          <button class="btn btn-sm" id="nextPage" ${currentPage >= totalPages-1 ? 'disabled' : ''}>Next</button>
+        </div>
+      </div>`;
+    }
+
+    app.innerHTML = html;
+
+    // Event listeners
+    $$('.card', app).forEach(card => {
+      card.addEventListener('click', () => {
+        location.hash = '#/conversation/' + card.dataset.id;
+      });
+    });
+    $$('.tag-chip', app).forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tag = chip.dataset.tag;
+        activeTag = activeTag === tag ? '' : tag;
+        currentPage = 0;
+        renderDashboard(stats);
+      });
+    });
+    const prev = $('#prevPage', app);
+    const next = $('#nextPage', app);
+    if (prev) prev.addEventListener('click', () => { currentPage--; renderDashboard(stats); });
+    if (next) next.addEventListener('click', () => { currentPage++; renderDashboard(stats); });
+  }
+
+  // Detail view
+  async function showDetail(id) {
+    const app = $('#app');
+    app.innerHTML = '<div class="loading">Loading conversation...</div>';
+
+    try {
+      const data = await api('/conversations/' + encodeURIComponent(id));
+      const meta = data.metadata;
+      const transcript = data.transcript;
+
+      const date = new Date(meta.saved_at).toLocaleString();
+      const tags = (meta.tags || []).map(t => `<span class="card-tag">${escapeHtml(t)}</span>`).join('');
+
+      let html = '<div class="detail-header">';
+      html += `<a href="#/" class="detail-back">&#8592; Back to list</a>`;
+      html += `<div class="detail-title">${escapeHtml(meta.summary || 'Untitled')}</div>`;
+      html += `<div class="detail-meta">${date}`;
+      if (meta.project) html += ` &middot; ${escapeHtml(meta.project)}`;
+      if (meta.git_branch) html += ` &middot; ${escapeHtml(meta.git_branch)}`;
+      if (meta.git_commit) html += ` &middot; <code>${escapeHtml(meta.git_commit)}</code>`;
+      html += `</div>`;
+      if (tags) html += `<div class="detail-tags">${tags}</div>`;
+      if (meta.note) html += `<div class="detail-note">${escapeHtml(meta.note)}</div>`;
+      html += '</div>';
+
+      // Parse transcript into messages
+      const lines = transcript.split('\n');
+      let currentRole = null;
+      let currentContent = [];
+      let inHeader = true;
+
+      function flushMessage() {
+        if (currentRole && currentContent.length > 0) {
+          const content = currentContent.join('\n').trim();
+          if (content) {
+            const cls = currentRole === 'User' ? 'user' : 'assistant';
+            html += `<div class="message ${cls}">`;
+            html += `<div class="message-role">${currentRole}</div>`;
+            html += `<div class="message-content">${renderMd(content)}</div>`;
+            html += '</div>';
+          }
+        }
+        currentContent = [];
+      }
+
+      for (const line of lines) {
+        // Skip header section (everything before ---)
+        if (inHeader) {
+          if (line.trim() === '---') { inHeader = false; }
+          continue;
+        }
+
+        if (line.startsWith('## User')) {
+          flushMessage();
+          currentRole = 'User';
+        } else if (line.startsWith('## Claude')) {
+          flushMessage();
+          currentRole = 'Claude';
+        } else {
+          currentContent.push(line);
+        }
+      }
+      flushMessage();
+
+      app.innerHTML = html;
+
+      // Copy buttons
+      $$('.copy-btn', app).forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const codeEl = $('#' + btn.dataset.copy, app);
+          if (codeEl) {
+            await navigator.clipboard.writeText(codeEl.textContent);
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+          }
+        });
+      });
+    } catch (err) {
+      app.innerHTML = `<div class="empty"><h2>Error</h2><p>${escapeHtml(err.message)}</p><a href="#/">Back to list</a></div>`;
+    }
+  }
+
+  // Search / filter event listeners
+  let searchTimer;
+  $('#search').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentPage = 0;
+      if (!location.hash.startsWith('#/conversation/')) {
+        renderDashboard(null);
+      }
+    }, 200);
+  });
+  $('#projectFilter').addEventListener('change', () => {
+    currentPage = 0;
+    if (!location.hash.startsWith('#/conversation/')) renderDashboard(null);
+  });
+  $('#sortOrder').addEventListener('change', () => {
+    currentPage = 0;
+    if (!location.hash.startsWith('#/conversation/')) renderDashboard(null);
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Skip if user is typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+      if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); }
+      return;
+    }
+
+    const hash = location.hash || '#/';
+    const onList = !hash.startsWith('#/conversation/');
+
+    switch (e.key) {
+      case '/':
+        e.preventDefault();
+        $('#search').focus();
+        break;
+      case 't':
+        toggleTheme();
+        break;
+      case 'Escape':
+        if (!onList) { location.hash = '#/'; e.preventDefault(); }
+        break;
+      case 'j':
+        if (onList) {
+          e.preventDefault();
+          const cards = $$('.card');
+          if (cards.length > 0) {
+            selectedIndex = Math.min(selectedIndex + 1, cards.length - 1);
+            cards.forEach((c, i) => c.classList.toggle('selected', i === selectedIndex));
+            cards[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+          }
+        }
+        break;
+      case 'k':
+        if (onList) {
+          e.preventDefault();
+          const cards2 = $$('.card');
+          if (cards2.length > 0) {
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+            cards2.forEach((c, i) => c.classList.toggle('selected', i === selectedIndex));
+            cards2[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+          }
+        }
+        break;
+      case 'Enter':
+        if (onList && selectedIndex >= 0) {
+          const sel = $(`.card[data-idx="${selectedIndex}"]`);
+          if (sel) location.hash = '#/conversation/' + sel.dataset.id;
+        }
+        break;
+      case 'c':
+        if (!onList) {
+          const msgs = $$('.message-content');
+          const text = msgs.map(m => m.textContent).join('\n\n');
+          navigator.clipboard.writeText(text);
+        }
+        break;
+    }
+  });
+
+  // Initial route
+  route();
+})();
+</script>
+</body>
+</html>

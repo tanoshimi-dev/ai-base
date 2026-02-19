@@ -6,6 +6,7 @@ import { registerSearchConversations } from "./tools/search-conversations.js";
 import { registerGetConversation } from "./tools/get-conversation.js";
 import { registerDeleteConversations } from "./tools/delete-conversations.js";
 import { registerExportConversation } from "./tools/export-conversation.js";
+import { registerStartViewer } from "./tools/start-viewer.js";
 
 const server = new McpServer({
   name: "session-vault",
@@ -19,6 +20,7 @@ registerSearchConversations(server);
 registerGetConversation(server);
 registerDeleteConversations(server);
 registerExportConversation(server);
+registerStartViewer(server);
 
 async function main() {
   const transport = new StdioServerTransport();

@@ -29,6 +29,7 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "viewer": "node dist/viewer/standalone.js",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run test"
   },

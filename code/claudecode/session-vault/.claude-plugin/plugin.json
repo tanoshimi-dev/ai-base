@@ -1,0 +1,8 @@
+{
+  "name": "session-vault",
+  "description": "Save, review, and manage Claude Code conversation history",
+  "version": "0.1.0",
+  "author": {
+    "name": "session-vault"
+  }
+}

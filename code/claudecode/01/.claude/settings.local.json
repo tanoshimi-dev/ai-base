@@ -13,7 +13,9 @@
       "Bash(kill:*)",
       "Bash(taskkill:*)",
       "Bash(netstat:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(npm test:*)"
     ]
   }
 }

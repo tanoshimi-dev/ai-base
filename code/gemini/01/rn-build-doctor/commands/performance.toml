@@ -1,0 +1,16 @@
+description = "Get React Native performance optimization guides"
+
+prompt = """
+Use the guide_performance tool to find performance optimization advice.
+
+Present the results as:
+1. Problem diagnosis steps
+2. Specific optimizations with code examples
+3. Recommended profiling tools
+4. Before/after comparison when applicable
+
+If no query is specified, show all performance categories
+(rendering, lists, images, navigation, startup, memory, bridge).
+
+{{args}}
+"""

@@ -1,0 +1,296 @@
+import type { ErrorPattern } from '../types.js';
+
+export const ANDROID_ERROR_PATTERNS: ErrorPattern[] = [
+  {
+    id: 'android-sdk-not-found',
+    platform: 'android',
+    severity: 'critical',
+    title: 'Android SDK / ANDROID_HOME Not Set',
+    cause:
+      'ANDROID_HOME environment variable is not set or points to a nonexistent directory.',
+    patterns: [
+      /SDK location not found/i,
+      /ANDROID_HOME is not set/i,
+      /ANDROID_SDK_ROOT is not set/i,
+      /No such file or directory.*android\/sdk/i,
+    ],
+    fixes: [
+      'Add to ~/.zshrc or ~/.bash_profile:',
+      '  export ANDROID_HOME=$HOME/Library/Android/sdk',
+      '  export PATH=$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools',
+      'Then run: source ~/.zshrc',
+      'Alternatively create android/local.properties: sdk.dir=/path/to/android/sdk',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-gradle-java',
+    platform: 'android',
+    severity: 'critical',
+    title: 'Gradle/Java Version Incompatibility',
+    cause:
+      'The Java version is incompatible with the Gradle version. RN 0.73+ requires Java 17.',
+    patterns: [
+      /Unsupported class file major version/i,
+      /Could not determine java version/i,
+      /Minimum supported Gradle version is/i,
+      /Incompatible because this component declares.*compiled with Java/i,
+      /requires Java [\d.]+, currently using Java/i,
+    ],
+    fixes: [
+      'RN 0.73+ requires Java 17. Install via: brew install openjdk@17',
+      'Set JAVA_HOME: export JAVA_HOME=$(/usr/libexec/java_home -v 17)',
+      'Update Gradle in android/gradle/wrapper/gradle-wrapper.properties',
+      'Android Gradle Plugin 8.x requires Gradle 8.0+',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-namespace',
+    platform: 'android',
+    severity: 'critical',
+    title: 'Missing namespace in build.gradle (AGP 8+)',
+    cause:
+      'Android Gradle Plugin 8.0+ requires the namespace field in build.gradle.',
+    patterns: [
+      /Namespace not specified.*please specify a namespace/i,
+      /A namespace should be specified explicitly in your build file/i,
+    ],
+    fixes: [
+      'Add to android/app/build.gradle inside android { }:',
+      '  namespace "com.yourapp"',
+      'Ensure the value matches applicationId',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-duplicate-class',
+    platform: 'android',
+    severity: 'critical',
+    title: 'Duplicate Class Conflict',
+    cause:
+      'Two dependencies pull in different versions of the same class, often caused by AndroidX migration conflicts.',
+    patterns: [
+      /Duplicate class .* found in modules/i,
+      /Type .* is defined multiple times/i,
+      /DUPLICATE CLASS/i,
+    ],
+    fixes: [
+      'Enable Jetifier in android/gradle.properties: android.enableJetifier=true',
+      'Force resolution in android/build.gradle:',
+      '  configurations.all { resolutionStrategy { force "com.library:name:version" } }',
+      'Run: cd android && ./gradlew dependencies to find conflicting versions',
+    ],
+    autoFixable: true,
+    fixId: 'android-clean',
+  },
+  {
+    id: 'android-jetifier',
+    platform: 'android',
+    severity: 'warning',
+    title: 'AndroidX / Jetifier Conflict',
+    cause:
+      'A library uses the old android.support namespace but AndroidX is enabled.',
+    patterns: [
+      /Jetifier.*not.*enabled/i,
+      /android\.support.*not.*found/i,
+      /Failed to transform.*jetified/i,
+    ],
+    fixes: [
+      'Add to android/gradle.properties:',
+      '  android.useAndroidX=true',
+      '  android.enableJetifier=true',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-ndk',
+    platform: 'android',
+    severity: 'warning',
+    title: 'NDK / CMake Build Error',
+    cause:
+      'The required NDK version is not installed, or CMake cannot find the specified toolchain.',
+    patterns: [
+      /NDK at .* did not have a source\.properties file/i,
+      /No version of NDK matched/i,
+      /CMake [\d.]+ was not found/i,
+      /ANDROID_NDK_HOME is not set/i,
+    ],
+    fixes: [
+      'Open Android Studio -> SDK Manager -> SDK Tools -> Install NDK (Side by side)',
+      'Specify NDK version in android/app/build.gradle: ndkVersion "26.1.10909125"',
+      'Install CMake via SDK Manager if needed',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-r8-proguard',
+    platform: 'android',
+    severity: 'warning',
+    title: 'R8 / ProGuard Minification Error',
+    cause:
+      'R8 or ProGuard is removing classes/methods needed at runtime.',
+    patterns: [
+      /R8.*error/i,
+      /ProGuard.*warning.*unresolved/i,
+      /Missing class .* referenced from/i,
+      /can't find referenced class/i,
+    ],
+    fixes: [
+      'Add keep rules to android/app/proguard-rules.pro',
+      'Disable R8 for testing: minifyEnabled false in build.gradle',
+      'Check library documentation for required ProGuard rules',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-memory',
+    platform: 'android',
+    severity: 'warning',
+    title: 'Gradle Daemon Out of Memory',
+    cause:
+      'The Gradle daemon does not have enough heap memory to complete the build.',
+    patterns: [
+      /OutOfMemoryError/i,
+      /GC overhead limit exceeded/i,
+      /Java heap space/i,
+      /Gradle build daemon disappeared/i,
+    ],
+    fixes: [
+      'Increase heap in android/gradle.properties:',
+      '  org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m',
+      'Or add: org.gradle.daemon=false to disable the daemon',
+      'Close other heavy applications to free memory',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-keystore',
+    platform: 'android',
+    severity: 'info',
+    title: 'Keystore / Release Signing Error',
+    cause:
+      'The keystore file is missing, the password is wrong, or the key alias does not exist.',
+    patterns: [
+      /Keystore file '.*' not found/i,
+      /Failed to read key .* from store/i,
+      /UnrecoverableKeyException/i,
+      /wrong password/i,
+    ],
+    fixes: [
+      'Check android/app/build.gradle for the storeFile path',
+      'Verify the keystore file exists at the specified path',
+      'Confirm MYAPP_UPLOAD_STORE_PASSWORD and MYAPP_UPLOAD_KEY_PASSWORD are correct',
+      'For debug builds, use the debug keystore: ~/.android/debug.keystore',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-manifest-merge',
+    platform: 'android',
+    severity: 'critical',
+    title: 'AndroidManifest.xml Merge Conflict',
+    cause: 'Multiple libraries define conflicting entries in AndroidManifest.xml.',
+    patterns: [
+      /Manifest merger failed/i,
+      /Attribute.*is also present at/i,
+      /tools:replace.*was specified/i,
+    ],
+    fixes: [
+      'Add tools:replace="android:value" to the conflicting attribute in your AndroidManifest.xml',
+      'Add xmlns:tools="http://schemas.android.com/tools" to the manifest tag',
+      'Check which libraries define the conflicting attribute with ./gradlew dependencies',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-multiDex',
+    platform: 'android',
+    severity: 'critical',
+    title: 'MultiDex Error (Method Count Exceeded)',
+    cause: 'App exceeds the 65,536 method limit for a single DEX file.',
+    patterns: [
+      /Cannot fit requested classes in a single dex file/i,
+      /methods: \d+ > 65536/i,
+      /multidex/i,
+    ],
+    fixes: [
+      'Enable multidex in android/app/build.gradle: multiDexEnabled true',
+      'minSdkVersion >= 21 enables multidex automatically',
+      'If minSdk < 21: add implementation "androidx.multidex:multidex:2.0.1"',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-cleartext',
+    platform: 'android',
+    severity: 'warning',
+    title: 'Cleartext HTTP Traffic Not Permitted',
+    cause: 'Android 9+ blocks HTTP (non-HTTPS) requests by default.',
+    patterns: [
+      /CLEARTEXT communication to .* not permitted/i,
+      /cleartext traffic/i,
+      /UnknownServiceException.*CLEARTEXT/i,
+    ],
+    fixes: [
+      'Use HTTPS URLs instead of HTTP',
+      'For development: add android:usesCleartextTraffic="true" in AndroidManifest.xml <application>',
+      'For production: use network_security_config.xml to allow specific domains',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-64bit',
+    platform: 'android',
+    severity: 'warning',
+    title: 'Missing 64-bit Native Libraries',
+    cause: 'Google Play requires 64-bit support. Some native libraries only provide 32-bit .so files.',
+    patterns: [
+      /64-bit/i,
+      /armeabi-v7a.*but not.*arm64-v8a/i,
+      /does not have a 64-bit version/i,
+    ],
+    fixes: [
+      'Update native libraries to versions that include arm64-v8a',
+      'Check android/app/build.gradle ndk.abiFilters includes "arm64-v8a"',
+      'Remove abiFilters entirely to include all architectures',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-build-tools',
+    platform: 'android',
+    severity: 'critical',
+    title: 'Android Build Tools Version Mismatch',
+    cause: 'Build tools version is not installed or does not match the project configuration.',
+    patterns: [
+      /failed to find Build Tools revision/i,
+      /Could not determine the dependencies of task.*compileSdkVersion/i,
+      /Installed Build Tools revision .* is corrupted/i,
+    ],
+    fixes: [
+      'Install required build tools: sdkmanager "build-tools;34.0.0"',
+      'Update buildToolsVersion in android/app/build.gradle',
+      'Open Android Studio → SDK Manager → SDK Tools → install required version',
+    ],
+    autoFixable: false,
+  },
+  {
+    id: 'android-target-sdk',
+    platform: 'android',
+    severity: 'warning',
+    title: 'Target SDK Version Too Low for Play Store',
+    cause: 'Google Play requires apps to target a minimum API level (currently 34+).',
+    patterns: [
+      /targetSdkVersion.*must be/i,
+      /Your app currently targets API level/i,
+      /target.*API level.*is too low/i,
+    ],
+    fixes: [
+      'Update targetSdkVersion to 34 in android/app/build.gradle',
+      'Test the app with the new target SDK for behavioral changes',
+      'Update compileSdkVersion to match or exceed targetSdkVersion',
+    ],
+    autoFixable: false,
+  },
+];

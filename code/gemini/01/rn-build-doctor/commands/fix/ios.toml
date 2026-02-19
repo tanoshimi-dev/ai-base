@@ -1,0 +1,16 @@
+description = "Diagnose and fix iOS build errors in the current React Native project"
+
+prompt = """
+Follow these steps for the iOS build error diagnosis and fix workflow:
+
+1. Ask the user for the project path if not already known (or use the current directory)
+2. Use get_project_info to read the iOS project configuration
+3. If the user has a build error log, use diagnose_build_error with platform: "ios"
+4. If auto-fixable errors are found:
+   a. Show the user what commands will be run (dry_run: true first)
+   b. Ask for confirmation
+   c. Run apply_fix with dry_run: false only after explicit user confirmation
+5. After fixes are applied, remind the user to rebuild and report back if errors persist
+
+Always confirm with the user before executing any fix commands.
+"""

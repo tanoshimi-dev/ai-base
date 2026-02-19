@@ -1,0 +1,12 @@
+{
+  "name": "rn-build-doctor",
+  "version": "1.0.0",
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "rn-build-doctor": {
+      "command": "node",
+      "args": ["${extensionPath}${/}dist${/}server.js"],
+      "cwd": "${extensionPath}"
+    }
+  }
+}

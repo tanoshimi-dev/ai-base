@@ -1,0 +1,15 @@
+description = "Get library recommendations and setup guide for a React Native feature"
+
+prompt = """
+Use the recommend_library tool to find the best libraries for the requested feature.
+
+Present the results as:
+1. Top recommendation with full setup steps (install commands, iOS/Android config)
+2. Alternative libraries with brief comparison (pros/cons)
+3. Required permissions (iOS Info.plist keys / Android Manifest permissions)
+4. Expo compatibility note
+
+If the user does not specify a feature, show the list of available feature categories.
+
+{{args}}
+"""

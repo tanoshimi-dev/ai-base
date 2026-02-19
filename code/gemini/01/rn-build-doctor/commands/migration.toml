@@ -1,0 +1,15 @@
+description = "Get migration guides for Expo/bare workflow transitions"
+
+prompt = """
+Use the guide_migration tool to find migration guides.
+
+Present the results as:
+1. Step-by-step migration process
+2. Warnings and potential breaking changes
+3. Commands to run at each step
+4. Tips for a smooth transition
+
+If no query is specified, show all available migration paths.
+
+{{args}}
+"""

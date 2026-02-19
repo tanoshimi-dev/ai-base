@@ -1,0 +1,15 @@
+description = "Get pre-release checklists for App Store and Google Play"
+
+prompt = """
+Use the guide_release_checklist tool to get release checklists.
+
+Present the results as:
+1. Numbered checklist with critical items highlighted
+2. Common rejection reasons and how to avoid them
+3. Platform-specific requirements
+4. Pre-submission testing recommendations
+
+If no query is specified, show checklists for both iOS and Android.
+
+{{args}}
+"""

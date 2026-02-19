@@ -1,0 +1,15 @@
+description = "Get environment setup guides for React Native development"
+
+prompt = """
+Use the guide_env_setup tool to find environment setup guides.
+
+Present the results as:
+1. Prerequisites (OS version, RAM, disk space)
+2. Step-by-step installation commands
+3. Environment variable configuration
+4. Verification steps to confirm setup is working
+
+If no query is specified, show all available setup guides by OS.
+
+{{args}}
+"""

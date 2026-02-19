@@ -1,0 +1,16 @@
+description = "Get guidance on choosing a React Native project starter template"
+
+prompt = """
+Use the guide_template tool to find the right project template.
+
+Present the results as:
+1. Recommended template with setup commands
+2. What it includes (features, libraries)
+3. Who it's best for (skill level, project type)
+4. Alternatives with pros/cons comparison
+
+If no query is specified, show all available templates grouped by category
+(official, community, fullstack, expo-template).
+
+{{args}}
+"""

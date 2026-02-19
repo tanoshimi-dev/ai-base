@@ -1,0 +1,15 @@
+description = "Get deep linking setup guides for React Native"
+
+prompt = """
+Use the guide_deeplink tool to find deep linking guides.
+
+Present the results as:
+1. Step-by-step setup instructions
+2. Code examples for configuration
+3. Platform-specific requirements (iOS Universal Links, Android App Links)
+4. Testing instructions
+
+If no query is specified, show all available deep linking guides.
+
+{{args}}
+"""

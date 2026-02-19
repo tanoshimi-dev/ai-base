@@ -1,0 +1,15 @@
+description = "Get step-by-step guide for publishing to App Store or Google Play"
+
+prompt = """
+Use the guide_publishing tool to provide a publishing guide.
+
+Present the results as:
+1. Step-by-step instructions with commands where applicable
+2. Important tips and warnings for each step
+3. Common rejection reasons and how to avoid them
+4. Code signing guidance if relevant
+
+If the user does not specify a platform, show guides for both iOS and Android.
+
+{{args}}
+"""

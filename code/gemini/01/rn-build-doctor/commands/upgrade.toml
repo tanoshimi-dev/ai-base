@@ -1,0 +1,15 @@
+description = "Get step-by-step guide for upgrading between React Native versions"
+
+prompt = """
+Use the guide_upgrade tool to find the upgrade guide.
+
+Present the results as:
+1. Major breaking changes summary
+2. Step-by-step upgrade instructions with commands
+3. Which steps are breaking changes vs non-breaking
+4. Tips and warnings for each step
+
+If no version is specified, show all available upgrade paths.
+
+{{args}}
+"""

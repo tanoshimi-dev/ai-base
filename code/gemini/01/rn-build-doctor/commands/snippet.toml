@@ -1,0 +1,16 @@
+description = "Get ready-to-use code snippets for common React Native patterns"
+
+prompt = """
+Use the generate_snippet tool to find code snippets.
+
+Present the results as:
+1. The complete code snippet ready to copy-paste
+2. Required dependencies with install commands
+3. Usage example
+4. Customization tips
+
+If no query is specified, show all available snippet categories
+(navigation, api, hooks, forms, notifications, storage, auth, ui).
+
+{{args}}
+"""

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:google-gemini.github.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:hackteam.io)",
+      "WebFetch(domain:geminicli.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:mcpcat.io)",
+      "WebFetch(domain:codelabs.developers.google.com)",
+      "WebFetch(domain:developers.googleblog.com)",
+      "WebFetch(domain:gemini-cli.xyz)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 3 node:*)",
+      "Bash(npm install:*)",
+      "Bash(gemini:*)",
+      "Bash(xargs:*)",
+      "Bash(pushd:*)",
+      "Bash(popd:*)",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}

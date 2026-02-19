@@ -1,0 +1,16 @@
+description = "Get React Native best practice guidance on architecture, testing, debugging, security, or CI/CD"
+
+prompt = """
+Use the guide_best_practice tool to find guidance on the requested topic.
+
+Present the results as:
+1. Recommended approach with explanation and code example (if available)
+2. Alternative approaches with pros/cons comparison
+3. Setup steps if applicable
+4. Links to official documentation
+
+If no topic is specified, show the available categories grouped by domain
+(architecture, testing, debugging, security, cicd).
+
+{{args}}
+"""

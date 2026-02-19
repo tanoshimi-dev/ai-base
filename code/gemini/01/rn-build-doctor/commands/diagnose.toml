@@ -1,0 +1,14 @@
+description = "Analyze a React Native build error log and explain the cause and fix"
+
+prompt = """
+Ask the user to paste their build error log, then use the diagnose_build_error tool to analyze it.
+
+For each error found:
+1. Clearly explain what caused the error in plain language
+2. List the recommended fix steps in order
+3. If the error is auto-fixable, offer to run apply_fix (confirm with the user before executing with dry_run: false)
+
+If no known patterns are found, ask the user for more context about their RN version and what they were doing when the error occurred.
+
+{{args}}
+"""

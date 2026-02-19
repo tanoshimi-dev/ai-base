@@ -1,0 +1,15 @@
+description = "Get monorepo setup guides for React Native"
+
+prompt = """
+Use the guide_monorepo tool to find monorepo setup guides.
+
+Present the results as:
+1. Step-by-step setup for the chosen monorepo tool
+2. Metro / CocoaPods / Gradle configuration for monorepo
+3. Common pitfalls and how to avoid them
+4. Code sharing strategies
+
+If no query is specified, show all available monorepo guides.
+
+{{args}}
+"""

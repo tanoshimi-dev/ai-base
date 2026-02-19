@@ -1,0 +1,15 @@
+description = "Get symptom-based troubleshooting recipes for common React Native problems"
+
+prompt = """
+Use the guide_troubleshoot tool to find a troubleshooting recipe.
+
+Present the results as:
+1. Symptom description and common cause
+2. Step-by-step diagnostic checklist (what to check, expected result, what to do if it fails)
+3. Quick fix commands
+4. Prevention tips
+
+If no symptom is described, show all available troubleshooting recipes.
+
+{{args}}
+"""

@@ -1,0 +1,15 @@
+description = "Check library compatibility with your React Native version"
+
+prompt = """
+Use the check_compatibility tool to find known compatibility issues.
+
+Present the results as:
+1. List of compatibility issues found (severity: error or warning)
+2. Description of each issue
+3. Recommended fix for each issue
+4. Summary: how many errors vs warnings
+
+If no library or version is specified, show all known compatibility rules.
+
+{{args}}
+"""

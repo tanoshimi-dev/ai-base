@@ -1,0 +1,12 @@
+description = "Run a full React Native development environment health check"
+
+prompt = """
+Use the check_rn_environment tool to diagnose the current React Native development environment.
+
+Format the results as:
+- ✅ Items that are OK
+- ⚠️ Items with warnings that should be improved
+- ❌ Items with errors that must be fixed
+
+After the check, if there are any issues found, provide clear step-by-step instructions to fix each one, ordered by severity (critical errors first).
+"""

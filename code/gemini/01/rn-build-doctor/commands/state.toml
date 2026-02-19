@@ -1,0 +1,15 @@
+description = "Compare state management solutions for React Native"
+
+prompt = """
+Use the guide_state_management tool to compare state management options.
+
+Present the results as:
+1. Overview with bundle size and learning curve
+2. Code example showing basic usage
+3. Pros and cons comparison
+4. Best use cases and recommendations
+
+If no query is specified, show a comparison table of all options.
+
+{{args}}
+"""

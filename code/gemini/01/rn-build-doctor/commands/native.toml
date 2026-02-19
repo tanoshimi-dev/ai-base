@@ -1,0 +1,15 @@
+description = "Get guides for creating native modules (TurboModules/Fabric) and New Architecture migration"
+
+prompt = """
+Use the guide_native_module tool to find the relevant guide.
+
+Present the results as:
+1. Overview of the concept
+2. Step-by-step implementation with code examples
+3. Platform-specific notes (iOS/Android)
+4. Tips and common pitfalls
+
+If no topic is specified, show all available native module guides.
+
+{{args}}
+"""

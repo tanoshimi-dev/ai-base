@@ -15,6 +15,12 @@ export const ConfigSchema = z.object({
   redaction_rules: z.array(RedactionRuleSchema).default([]),
   viewer_port: z.number().int().min(1024).max(65535).default(3777),
   default_export_format: z.enum(["md", "json", "html"]).default("md"),
+  project_save_paths: z
+    .record(z.string(), z.string())
+    .default({})
+    .describe(
+      "Per-project custom save directories. Keys are project paths, values are target directories.",
+    ),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -27,6 +33,7 @@ const DEFAULT_CONFIG: Config = {
   redaction_rules: [],
   viewer_port: 3777,
   default_export_format: "md",
+  project_save_paths: {},
 };
 
 export function getVaultDir(): string {
@@ -61,4 +68,24 @@ export async function saveConfig(config: Config): Promise<void> {
 
 export function getDefaultConfig(): Config {
   return { ...DEFAULT_CONFIG };
+}
+
+/**
+ * Resolve the save directory for a project.
+ * Priority: explicit savePath arg > project_save_paths config > default vault dir.
+ */
+export function resolveProjectSavePath(
+  config: Config,
+  projectPath: string,
+  savePath?: string,
+): string | undefined {
+  if (savePath) return savePath;
+
+  const normalized = projectPath.replace(/\\/g, "/").replace(/\/+$/, "");
+  for (const [key, value] of Object.entries(config.project_save_paths)) {
+    const normalizedKey = key.replace(/\\/g, "/").replace(/\/+$/, "");
+    if (normalizedKey === normalized) return value;
+  }
+
+  return undefined;
 }

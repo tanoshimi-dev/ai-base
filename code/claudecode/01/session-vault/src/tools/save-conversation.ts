@@ -9,7 +9,7 @@ import {
 } from "../storage/transcript-parser.js";
 import { saveTranscript } from "../storage/vault.js";
 import { addEntry } from "../storage/index-manager.js";
-import { loadConfig, getVaultDir } from "../utils/config.js";
+import { loadConfig, getVaultDir, resolveProjectSavePath } from "../utils/config.js";
 import { getCurrentBranch, getCurrentCommit } from "../utils/git.js";
 import { projectName } from "../utils/slug.js";
 
@@ -36,6 +36,13 @@ export function registerSaveConversation(server: McpServer): void {
         .string()
         .optional()
         .describe("A note describing the conversation"),
+      save_path: z
+        .string()
+        .optional()
+        .describe(
+          "Custom directory path to save the conversation. " +
+            "Overrides the default vault location and project_save_paths config.",
+        ),
     },
     async (args) => {
       try {
@@ -112,6 +119,13 @@ export function registerSaveConversation(server: McpServer): void {
           config.redaction_rules,
         );
 
+        // Resolve save directory: explicit arg > project config > default vault
+        const customDir = resolveProjectSavePath(
+          config,
+          args.project_path,
+          args.save_path,
+        );
+
         // Save to vault
         const metadata = await saveTranscript(markdown, {
           projectPath: args.project_path,
@@ -123,6 +137,7 @@ export function registerSaveConversation(server: McpServer): void {
           summary,
           messageCount: transcript.messageCount,
           source: "manual",
+          customDir,
         });
 
         // Update index
@@ -141,6 +156,7 @@ export function registerSaveConversation(server: McpServer): void {
                   message_count: metadata.message_count,
                   saved_at: metadata.saved_at,
                   transcript_file: metadata.transcript_file,
+                  ...(customDir ? { save_path: customDir } : {}),
                 },
                 null,
                 2,

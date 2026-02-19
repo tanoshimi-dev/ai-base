@@ -1,7 +1,7 @@
 ---
 name: save
 description: Save the current conversation to the session vault with optional tags and notes. Also manages auto-save config.
-argument-hint: "[tags] [--note \"desc\"] [--enable-auto] [--disable-auto]"
+argument-hint: "[tags] [--note \"desc\"] [--save-path dir] [--enable-auto] [--disable-auto]"
 disable-model-invocation: true
 ---
 
@@ -14,6 +14,7 @@ Save this conversation to the session vault using the `save_conversation` MCP to
 Parse `$ARGUMENTS` for:
 - **Tags**: comma-separated list (e.g. `refactor,auth,bugfix`)
 - **Note**: `--note "description of the conversation"` flag
+- **Save path**: `--save-path "/path/to/dir"` flag — custom directory to save the transcript to
 - **--enable-auto**: enable auto-save on session end (config-only, no save)
 - **--disable-auto**: disable auto-save on session end (config-only, no save)
 
@@ -22,6 +23,7 @@ Parse `$ARGUMENTS` for:
 - `/session-vault:save` — save with no tags or note
 - `/session-vault:save auth,login` — save with tags
 - `/session-vault:save auth --note "Fixed OAuth token refresh"` — tags + note
+- `/session-vault:save --save-path D:/backups/vault` — save to a custom directory
 - `/session-vault:save --enable-auto` — enable auto-save (does not save current session)
 - `/session-vault:save --disable-auto` — disable auto-save
 
@@ -53,6 +55,7 @@ If `$ARGUMENTS` contains `--enable-auto` or `--disable-auto`:
    - `session_id`: `${CLAUDE_SESSION_ID}`
    - `tags`: parsed from arguments (array of strings), omit if none provided
    - `note`: parsed from `--note` flag, omit if not provided
+   - `save_path`: parsed from `--save-path` flag, omit if not provided
 
 4. **Report the result** to the user, showing:
    - Vault ID (short form)

@@ -24,9 +24,17 @@ export interface ConversationMetadata {
 
 /**
  * Ensure the vault directory exists for a given project path.
- * Returns the project-specific vault directory.
+ * If customDir is provided, uses that directory directly instead of the default vault location.
+ * Returns the resolved save directory.
  */
-export async function ensureVaultDir(projectPath: string): Promise<string> {
+export async function ensureVaultDir(
+  projectPath: string,
+  customDir?: string,
+): Promise<string> {
+  if (customDir) {
+    await mkdir(customDir, { recursive: true });
+    return customDir;
+  }
   const slug = pathToSlug(projectPath);
   const dir = join(getVaultDir(), "projects", slug);
   await mkdir(dir, { recursive: true });
@@ -60,9 +68,10 @@ export async function saveTranscript(
     summary: string;
     messageCount: number;
     source?: "manual" | "auto";
+    customDir?: string;
   },
 ): Promise<ConversationMetadata> {
-  const dir = await ensureVaultDir(opts.projectPath);
+  const dir = await ensureVaultDir(opts.projectPath, opts.customDir);
   const prefix = generateFilePrefix();
   const transcriptFile = `${prefix}.md`;
   const metadataFile = `${prefix}.meta.json`;

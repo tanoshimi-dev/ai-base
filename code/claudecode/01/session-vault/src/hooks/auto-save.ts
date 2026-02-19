@@ -5,7 +5,7 @@
 //
 // Exit 0 on success, 1 on skip (disabled / below threshold / error).
 
-import { loadConfig } from "../utils/config.js";
+import { loadConfig, resolveProjectSavePath } from "../utils/config.js";
 import {
   parseSessionFile,
   toMarkdown,
@@ -110,7 +110,10 @@ async function main(): Promise<void> {
     config.redaction_rules,
   );
 
-  // 8. Save to vault
+  // 8. Resolve custom save path from project config
+  const customDir = resolveProjectSavePath(config, projectPath);
+
+  // 9. Save to vault
   const metadata = await saveTranscript(markdown, {
     projectPath,
     sessionId: input.session_id || "unknown",
@@ -121,9 +124,10 @@ async function main(): Promise<void> {
     summary,
     messageCount: transcript.messageCount,
     source: "auto",
+    customDir,
   });
 
-  // 9. Update index
+  // 10. Update index
   await addEntry(metadata);
 }
 

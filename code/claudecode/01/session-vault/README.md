@@ -121,6 +121,51 @@ Or edit `~/.session-vault/config.json` directly:
 
 Auto-saved conversations are tagged with `auto` and only saved when the message count meets the `auto_save_min_messages` threshold.
 
+## Custom Save Path
+
+By default, conversations are saved to `~/.session-vault/projects/<project-slug>/`. You can override this per-save or per-project.
+
+### Per-save: `save_path` parameter
+
+Pass a `save_path` when saving to store the conversation in a custom directory:
+
+```
+/session-vault:save --save-path /mnt/nas/vault/my-project
+```
+
+Or via the MCP tool directly:
+```json
+{
+  "tool": "save_conversation",
+  "arguments": {
+    "transcript_path": "...",
+    "project_path": "...",
+    "save_path": "D:/backups/conversations"
+  }
+}
+```
+
+### Per-project: `project_save_paths` config
+
+Set a default save directory for specific projects in `~/.session-vault/config.json`:
+
+```json
+{
+  "project_save_paths": {
+    "E:/dev/my-project": "D:/backups/my-project-vault",
+    "/home/user/work/api": "/mnt/nas/vault/api-conversations"
+  }
+}
+```
+
+All conversations saved from that project (including auto-saves) will go to the configured directory instead of the default vault location.
+
+### Resolution priority
+
+1. Explicit `save_path` argument (highest)
+2. `project_save_paths` config entry for the project
+3. Default vault directory `~/.session-vault/projects/<slug>/` (lowest)
+
 ## Configuration
 
 Config file: `~/.session-vault/config.json`
@@ -133,6 +178,7 @@ Config file: `~/.session-vault/config.json`
 | `viewer_port` | integer | `3777` | Default port for the web viewer |
 | `default_export_format` | string | `"md"` | Default export format (`md`, `json`, `html`) |
 | `redaction_rules` | array | `[]` | Regex patterns to redact from saved transcripts |
+| `project_save_paths` | object | `{}` | Per-project custom save directories (keys: project paths, values: target dirs) |
 
 ### Redaction Rules
 

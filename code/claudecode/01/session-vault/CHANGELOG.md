@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+### Features
+
+- **Custom save path**: Specify a custom directory when saving conversations via the `save_path` parameter
+- **Per-project save paths**: Configure default save directories per project in `project_save_paths` config
+- Auto-save hook respects `project_save_paths` configuration
+
 ## 0.1.0
 
 Initial release.

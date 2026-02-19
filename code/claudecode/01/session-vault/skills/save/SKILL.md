@@ -1,7 +1,7 @@
 ---
 name: save
-description: Save the current conversation to the session vault with optional tags and notes.
-argument-hint: "[tags] [--note \"description\"]"
+description: Save the current conversation to the session vault with optional tags and notes. Also manages auto-save config.
+argument-hint: "[tags] [--note \"desc\"] [--enable-auto] [--disable-auto]"
 disable-model-invocation: true
 ---
 
@@ -14,13 +14,30 @@ Save this conversation to the session vault using the `save_conversation` MCP to
 Parse `$ARGUMENTS` for:
 - **Tags**: comma-separated list (e.g. `refactor,auth,bugfix`)
 - **Note**: `--note "description of the conversation"` flag
+- **--enable-auto**: enable auto-save on session end (config-only, no save)
+- **--disable-auto**: disable auto-save on session end (config-only, no save)
 
-Examples:
+## Examples
+
 - `/session-vault:save` — save with no tags or note
 - `/session-vault:save auth,login` — save with tags
 - `/session-vault:save auth --note "Fixed OAuth token refresh"` — tags + note
+- `/session-vault:save --enable-auto` — enable auto-save (does not save current session)
+- `/session-vault:save --disable-auto` — disable auto-save
 
 ## Steps
+
+### Config-only mode (`--enable-auto` / `--disable-auto`)
+
+If `$ARGUMENTS` contains `--enable-auto` or `--disable-auto`:
+
+1. Read the current vault config from `~/.session-vault/config.json` (create with defaults if missing).
+2. Set `auto_save` to `true` or `false` accordingly.
+3. Write the updated config back.
+4. Confirm the change to the user: "Auto-save has been **enabled/disabled**. Conversations will/will not be saved automatically when sessions end."
+5. **Do not proceed to save the conversation.** Return immediately.
+
+### Normal save mode
 
 1. **Locate the transcript file.** Run a `find` command to locate the current session transcript:
    ```
@@ -43,3 +60,9 @@ Examples:
    - Tags applied
    - Message count
    - Saved timestamp
+
+## Error Handling
+
+- If the transcript file cannot be found, suggest the user check that `~/.claude/projects/` exists and that the session has messages.
+- If the vault directory is not writable, tell the user to check permissions on `~/.session-vault/`.
+- If the transcript exceeds the size limit, inform the user of the current `max_transcript_size_mb` setting and how to increase it.

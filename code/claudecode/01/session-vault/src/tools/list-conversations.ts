@@ -78,11 +78,18 @@ export function registerListConversations(server: McpServer): void {
           ],
         };
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        let hint = "";
+
+        if (msg.includes("EACCES") || msg.includes("EPERM")) {
+          hint = "\n\nThe vault directory is not readable. Check file permissions on ~/.session-vault/";
+        }
+
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error listing conversations: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error listing conversations: ${msg}${hint}`,
             },
           ],
           isError: true,

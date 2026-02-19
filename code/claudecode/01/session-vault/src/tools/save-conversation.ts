@@ -1,13 +1,15 @@
 import { z } from "zod";
+import { access, constants } from "node:fs/promises";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   parseSessionFile,
   toMarkdown,
   generateSummary,
+  TranscriptTooLargeError,
 } from "../storage/transcript-parser.js";
 import { saveTranscript } from "../storage/vault.js";
 import { addEntry } from "../storage/index-manager.js";
-import { loadConfig } from "../utils/config.js";
+import { loadConfig, getVaultDir } from "../utils/config.js";
 import { getCurrentBranch, getCurrentCommit } from "../utils/git.js";
 import { projectName } from "../utils/slug.js";
 
@@ -37,16 +39,53 @@ export function registerSaveConversation(server: McpServer): void {
     },
     async (args) => {
       try {
+        // Validate transcript file is readable
+        try {
+          await access(args.transcript_path, constants.R_OK);
+        } catch {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Transcript file not found or not readable: ${args.transcript_path}\n\n` +
+                  "Ensure the session .jsonl file exists. Claude Code stores transcripts in " +
+                  "~/.claude/projects/<project-slug>/<session-id>.jsonl",
+              },
+            ],
+            isError: true,
+          };
+        }
+
         const config = await loadConfig();
 
-        // Parse the session JSONL
-        const transcript = await parseSessionFile(args.transcript_path);
+        // Parse the session JSONL (respects max_transcript_size_mb)
+        let transcript;
+        try {
+          transcript = await parseSessionFile(
+            args.transcript_path,
+            config.max_transcript_size_mb,
+          );
+        } catch (parseErr) {
+          if (parseErr instanceof TranscriptTooLargeError) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: parseErr.message,
+                },
+              ],
+              isError: true,
+            };
+          }
+          throw parseErr;
+        }
+
         if (transcript.messages.length === 0) {
           return {
             content: [
               {
                 type: "text" as const,
-                text: "No messages found in the session file. Nothing to save.",
+                text: "No messages found in the session file. The file may be empty or contain only system/tool messages.",
               },
             ],
           };
@@ -110,11 +149,20 @@ export function registerSaveConversation(server: McpServer): void {
           ],
         };
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        let hint = "";
+
+        if (msg.includes("EACCES") || msg.includes("EPERM")) {
+          hint = `\n\nThe vault directory (${getVaultDir()}) is not writable. Check file permissions.`;
+        } else if (msg.includes("ENOSPC")) {
+          hint = "\n\nDisk is full. Free up space and try again.";
+        }
+
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error saving conversation: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error saving conversation: ${msg}${hint}`,
             },
           ],
           isError: true,

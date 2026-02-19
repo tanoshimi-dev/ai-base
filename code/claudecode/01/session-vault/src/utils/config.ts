@@ -30,7 +30,10 @@ const DEFAULT_CONFIG: Config = {
 };
 
 export function getVaultDir(): string {
-  return process.env.VAULT_DIR || join(homedir(), ".session-vault");
+  return (
+    process.env.VAULT_DIR ||
+    join(process.env.HOME || process.env.USERPROFILE || homedir(), ".session-vault")
+  );
 }
 
 export function getConfigPath(): string {

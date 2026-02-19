@@ -74,8 +74,11 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // 4. Parse the transcript
-  const transcript = await parseSessionFile(transcriptPath);
+  // 4. Parse the transcript (respects max_transcript_size_mb)
+  const transcript = await parseSessionFile(
+    transcriptPath,
+    config.max_transcript_size_mb,
+  );
   if (transcript.messages.length === 0) {
     process.exit(1);
   }

@@ -1,4 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { createInterface } from "node:readline";
 import type { RedactionRule } from "../utils/config.js";
 
 export interface ParsedMessage {
@@ -83,13 +85,94 @@ export function parseJsonlContent(jsonlContent: string): ParsedTranscript {
 }
 
 /**
+ * Parse a line of JSONL into a message, or return null if not a valid message.
+ */
+function parseLine(line: string): ParsedMessage | null {
+  if (!line.trim()) return null;
+
+  let entry: Record<string, unknown>;
+  try {
+    entry = JSON.parse(line);
+  } catch {
+    return null;
+  }
+
+  const role = entry.role as string | undefined;
+  if (role !== "user" && role !== "assistant") return null;
+
+  if (role === "user" && Array.isArray(entry.content)) {
+    const hasOnlyToolResults = (entry.content as Array<{ type?: string }>).every(
+      (block) => block && typeof block === "object" && block.type === "tool_result",
+    );
+    if (hasOnlyToolResults) return null;
+  }
+
+  const text = extractTextContent(entry.content);
+  if (!text || !text.trim()) return null;
+
+  return { role: role as "user" | "assistant", content: text.trim() };
+}
+
+/**
+ * Stream-parse a large .jsonl file line-by-line to avoid loading it entirely into memory.
+ */
+export async function parseSessionFileStreaming(
+  filePath: string,
+): Promise<ParsedTranscript> {
+  const messages: ParsedMessage[] = [];
+
+  const rl = createInterface({
+    input: createReadStream(filePath, { encoding: "utf-8" }),
+    crlfDelay: Infinity,
+  });
+
+  for await (const line of rl) {
+    const msg = parseLine(line);
+    if (msg) messages.push(msg);
+  }
+
+  return { messages, messageCount: messages.length };
+}
+
+/**
  * Read and parse a Claude Code .jsonl session file from disk.
+ * Uses streaming for files larger than maxSizeMb to avoid memory issues.
  */
 export async function parseSessionFile(
   filePath: string,
+  maxSizeMb: number = 10,
 ): Promise<ParsedTranscript> {
+  const fileInfo = await stat(filePath);
+  const sizeMb = fileInfo.size / (1024 * 1024);
+
+  if (sizeMb > maxSizeMb) {
+    throw new TranscriptTooLargeError(filePath, sizeMb, maxSizeMb);
+  }
+
+  // Use streaming for files > 5 MB to reduce memory pressure
+  if (sizeMb > 5) {
+    return parseSessionFileStreaming(filePath);
+  }
+
   const content = await readFile(filePath, "utf-8");
   return parseJsonlContent(content);
+}
+
+/**
+ * Error thrown when a transcript exceeds the configured size limit.
+ */
+export class TranscriptTooLargeError extends Error {
+  constructor(
+    public readonly filePath: string,
+    public readonly sizeMb: number,
+    public readonly maxSizeMb: number,
+  ) {
+    super(
+      `Transcript too large: ${sizeMb.toFixed(1)} MB exceeds the ${maxSizeMb} MB limit. ` +
+      `Increase max_transcript_size_mb in your vault config, or save a shorter session.`,
+    );
+    this.name = "TranscriptTooLargeError";
+  }
 }
 
 /**

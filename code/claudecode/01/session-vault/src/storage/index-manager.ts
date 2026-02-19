@@ -44,7 +44,8 @@ function toIndexEntry(meta: ConversationMetadata): IndexEntry {
 
 /**
  * Load the vault index from disk.
- * Returns an empty index if the file doesn't exist or is corrupted.
+ * If the file is missing or corrupted, attempts auto-rebuild from .meta.json files.
+ * Returns an empty index only if rebuild also finds nothing.
  */
 export async function loadIndex(): Promise<VaultIndex> {
   try {
@@ -53,8 +54,25 @@ export async function loadIndex(): Promise<VaultIndex> {
     if (parsed.version === 1 && Array.isArray(parsed.entries)) {
       return parsed;
     }
-    return { version: 1, entries: [] };
-  } catch {
+    // Invalid structure — attempt rebuild
+    console.error(
+      "session-vault: index.json has invalid structure, rebuilding from metadata files...",
+    );
+    return rebuildIndex();
+  } catch (err) {
+    // Check if the projects directory exists — if so, there may be data to recover
+    const projectsDir = join(getVaultDir(), "projects");
+    try {
+      const dirs = await readdir(projectsDir);
+      if (dirs.length > 0) {
+        console.error(
+          "session-vault: index.json missing or corrupted, rebuilding from metadata files...",
+        );
+        return rebuildIndex();
+      }
+    } catch {
+      // No projects dir — genuinely empty vault
+    }
     return { version: 1, entries: [] };
   }
 }
@@ -70,11 +88,15 @@ async function saveIndex(index: VaultIndex): Promise<void> {
 
 /**
  * Add a new entry to the index.
+ * Deduplicates by ID (safe to call after auto-rebuild).
  */
 export async function addEntry(
   metadata: ConversationMetadata,
 ): Promise<void> {
   const index = await loadIndex();
+  if (index.entries.some((e) => e.id === metadata.id)) {
+    return; // Already present (e.g., from auto-rebuild)
+  }
   index.entries.push(toIndexEntry(metadata));
   await saveIndex(index);
 }
@@ -146,11 +168,23 @@ export async function rebuildIndex(): Promise<VaultIndex> {
 }
 
 /**
- * Find an entry in the index by ID.
+ * Find an entry in the index by ID or ID prefix.
+ * Supports short IDs (first 8+ chars) for convenience.
  */
 export async function findEntry(
   id: string,
 ): Promise<IndexEntry | undefined> {
   const index = await loadIndex();
-  return index.entries.find((e) => e.id === id);
+
+  // Exact match first
+  const exact = index.entries.find((e) => e.id === id);
+  if (exact) return exact;
+
+  // Prefix match (min 4 chars to avoid ambiguity)
+  if (id.length >= 4) {
+    const prefixMatches = index.entries.filter((e) => e.id.startsWith(id));
+    if (prefixMatches.length === 1) return prefixMatches[0];
+  }
+
+  return undefined;
 }

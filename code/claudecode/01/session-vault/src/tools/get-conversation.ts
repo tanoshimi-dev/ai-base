@@ -219,11 +219,19 @@ export function registerGetConversation(server: McpServer): void {
           ],
         };
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        let hint = "";
+
+        if (msg.includes("ENOENT")) {
+          hint = "\n\nThe transcript file may have been deleted from disk. " +
+            "Try running a vault index rebuild or use list_conversations to check available entries.";
+        }
+
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error retrieving conversation: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error retrieving conversation: ${msg}${hint}`,
             },
           ],
           isError: true,

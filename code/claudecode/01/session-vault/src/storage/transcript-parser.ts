@@ -39,9 +39,32 @@ function extractTextContent(content: unknown): string | null {
 }
 
 /**
+ * Unwrap a Claude Code JSONL entry to extract the message object.
+ * Claude Code wraps messages like:
+ *   {"type":"user","message":{"role":"user","content":"..."}, ...metadata}
+ * This function returns the inner message if wrapped, or the entry itself
+ * if it already has role/content at the top level.
+ */
+function unwrapEntry(entry: Record<string, unknown>): Record<string, unknown> {
+  if (
+    entry.message &&
+    typeof entry.message === "object" &&
+    !Array.isArray(entry.message) &&
+    "role" in (entry.message as Record<string, unknown>)
+  ) {
+    return entry.message as Record<string, unknown>;
+  }
+  return entry;
+}
+
+/**
  * Parse a Claude Code .jsonl session file into structured messages.
  * Extracts only human and assistant text messages, skipping system
  * messages, tool calls, and other internal entries.
+ *
+ * Supports both formats:
+ * - Bare messages: {"role":"user","content":"..."}
+ * - Wrapped messages: {"type":"user","message":{"role":"user","content":"..."}}
  */
 export function parseJsonlContent(jsonlContent: string): ParsedTranscript {
   const messages: ParsedMessage[] = [];
@@ -55,14 +78,16 @@ export function parseJsonlContent(jsonlContent: string): ParsedTranscript {
       continue;
     }
 
-    const role = entry.role as string | undefined;
+    const msg = unwrapEntry(entry);
+
+    const role = msg.role as string | undefined;
     if (role !== "user" && role !== "assistant") {
       continue;
     }
 
     // Skip tool results (they appear as user messages with tool_result content)
-    if (role === "user" && Array.isArray(entry.content)) {
-      const hasOnlyToolResults = (entry.content as Array<{ type?: string }>).every(
+    if (role === "user" && Array.isArray(msg.content)) {
+      const hasOnlyToolResults = (msg.content as Array<{ type?: string }>).every(
         (block) => block && typeof block === "object" && block.type === "tool_result",
       );
       if (hasOnlyToolResults) {
@@ -70,7 +95,7 @@ export function parseJsonlContent(jsonlContent: string): ParsedTranscript {
       }
     }
 
-    const text = extractTextContent(entry.content);
+    const text = extractTextContent(msg.content);
     if (!text || !text.trim()) {
       continue;
     }
@@ -97,17 +122,19 @@ function parseLine(line: string): ParsedMessage | null {
     return null;
   }
 
-  const role = entry.role as string | undefined;
+  const msg = unwrapEntry(entry);
+
+  const role = msg.role as string | undefined;
   if (role !== "user" && role !== "assistant") return null;
 
-  if (role === "user" && Array.isArray(entry.content)) {
-    const hasOnlyToolResults = (entry.content as Array<{ type?: string }>).every(
+  if (role === "user" && Array.isArray(msg.content)) {
+    const hasOnlyToolResults = (msg.content as Array<{ type?: string }>).every(
       (block) => block && typeof block === "object" && block.type === "tool_result",
     );
     if (hasOnlyToolResults) return null;
   }
 
-  const text = extractTextContent(entry.content);
+  const text = extractTextContent(msg.content);
   if (!text || !text.trim()) return null;
 
   return { role: role as "user" | "assistant", content: text.trim() };

@@ -41,6 +41,60 @@ const SAMPLE_JSONL = [
   }),
 ].join("\n");
 
+// Real Claude Code wrapped format — messages nested inside a "message" field
+const WRAPPED_JSONL = [
+  JSON.stringify({
+    type: "file-history-snapshot",
+    messageId: "snap-001",
+    snapshot: { messageId: "snap-001", trackedFileBackups: {}, timestamp: "2026-02-19T06:57:12.364Z" },
+    isSnapshotUpdate: false,
+  }),
+  JSON.stringify({
+    parentUuid: null,
+    isSidechain: false,
+    userType: "external",
+    cwd: "E:\\dev\\project",
+    sessionId: "abc-123",
+    version: "2.1.47",
+    gitBranch: "main",
+    type: "user",
+    message: { role: "user", content: "How do I fix a segfault?" },
+  }),
+  JSON.stringify({
+    parentUuid: "msg-001",
+    isSidechain: false,
+    type: "assistant",
+    message: {
+      role: "assistant",
+      content: "A segfault occurs when accessing invalid memory.",
+    },
+  }),
+  JSON.stringify({
+    parentUuid: "msg-002",
+    isSidechain: false,
+    type: "user",
+    message: {
+      role: "user",
+      content: [{ type: "tool_result", tool_use_id: "tool-1", content: "OK" }],
+    },
+  }),
+  JSON.stringify({
+    parentUuid: "msg-003",
+    isSidechain: false,
+    type: "user",
+    message: { role: "user", content: "Thanks, can you show me valgrind?" },
+  }),
+  JSON.stringify({
+    parentUuid: "msg-004",
+    isSidechain: false,
+    type: "assistant",
+    message: {
+      role: "assistant",
+      content: [{ type: "text", text: "Run `valgrind ./your_program` to check for errors." }],
+    },
+  }),
+].join("\n");
+
 describe("parseJsonlContent", () => {
   it("parses user and assistant messages", () => {
     const result = parseJsonlContent(SAMPLE_JSONL);
@@ -89,6 +143,37 @@ describe("parseJsonlContent", () => {
     const result = parseJsonlContent(input);
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].content).toBe("hello");
+  });
+});
+
+describe("parseJsonlContent — wrapped Claude Code format", () => {
+  it("parses wrapped user and assistant messages", () => {
+    const result = parseJsonlContent(WRAPPED_JSONL);
+    expect(result.messages).toHaveLength(4);
+    expect(result.messages[0].role).toBe("user");
+    expect(result.messages[0].content).toContain("segfault");
+    expect(result.messages[1].role).toBe("assistant");
+    expect(result.messages[1].content).toContain("invalid memory");
+  });
+
+  it("skips file-history-snapshot and other non-message lines", () => {
+    const result = parseJsonlContent(WRAPPED_JSONL);
+    // Should only have 4 real messages, not the snapshot
+    expect(result.messageCount).toBe(4);
+  });
+
+  it("skips wrapped tool_result-only user messages", () => {
+    const result = parseJsonlContent(WRAPPED_JSONL);
+    const userMessages = result.messages.filter((m) => m.role === "user");
+    expect(userMessages).toHaveLength(2);
+    expect(userMessages[0].content).toContain("segfault");
+    expect(userMessages[1].content).toContain("valgrind");
+  });
+
+  it("extracts text from wrapped content block arrays", () => {
+    const result = parseJsonlContent(WRAPPED_JSONL);
+    const assistants = result.messages.filter((m) => m.role === "assistant");
+    expect(assistants[1].content).toContain("valgrind");
   });
 });
 

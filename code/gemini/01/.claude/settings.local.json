@@ -20,7 +20,10 @@
       "Bash(xargs:*)",
       "Bash(pushd:*)",
       "Bash(popd:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "mcp__plugin_session-vault_session-vault__save_conversation",
+      "mcp__plugin_session-vault_session-vault__list_conversations",
+      "mcp__plugin_session-vault_session-vault__get_conversation"
     ]
   }
 }

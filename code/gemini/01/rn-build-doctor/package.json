@@ -4,11 +4,31 @@
   "description": "Gemini CLI Extension: Diagnose and fix React Native iOS/Android build errors",
   "type": "module",
   "main": "dist/server.js",
+  "license": "MIT",
+  "author": "hannari",
+  "keywords": [
+    "gemini-extension",
+    "gemini-cli",
+    "react-native",
+    "mcp",
+    "build-doctor",
+    "ios",
+    "android",
+    "diagnostics"
+  ],
+  "files": [
+    "dist",
+    "commands",
+    "skills",
+    "gemini-extension.json",
+    "GEMINI.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
     "rebuild": "npm run clean && npm run build",
     "dev": "tsc --watch",
+    "prepublishOnly": "npm run rebuild",
     "inspector": "npx @modelcontextprotocol/inspector node dist/server.js"
   },
   "dependencies": {

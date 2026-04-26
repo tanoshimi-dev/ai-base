@@ -29,6 +29,14 @@ Claude Code・GitHub Copilot・Gemini CLI など、複数のツールにまた�
 
 ---
 
+<div align="center">
+
+![demo](assets/demo.svg)
+
+</div>
+
+---
+
 ## ツール一覧
 
 | ツール | 対象 | カテゴリ | 説明 |

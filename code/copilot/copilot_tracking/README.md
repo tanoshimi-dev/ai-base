@@ -188,6 +188,28 @@ python3 copilot_tracking.py wrap --wrapper-help
 `wrap` は追跡用オプション (`--db`, `--logs-dir`, `-C/--cwd`, `--keep-otel-file`, `--no-capture-content`) を先頭だけ解釈し、最初の未知の引数以降はそのまま `copilot` に渡します。  
 そのため、普段どおり `-p` や `--allow-all-tools` をそのまま書けます。
 
+#### 別ディレクトリを調査し、出力は別の場所に限定したい場合
+
+調査対象ディレクトリを `A`、成果物の出力先を `B` にしたい場合は、`-C/--cwd` で作業ディレクトリを `B` にし、`A` は `--add-dir` で参照対象として追加する使い方が安全です。
+
+```powershell
+python .\copilot_tracking.py wrap `
+  -C E:\work\output-B `
+  -p "E:\work\source-A を調査してください。source-A 配下は参照専用です。source-A 内の既存ファイルの作成・編集・削除は一切しないでください。成果物は E:\work\output-B 配下にのみ出力してください。" `
+  --add-dir E:\work\source-A `
+  --allow-all-tools
+```
+
+プロンプトでは少なくとも次を明示してください。
+
+- `A を調査対象にする`
+- `A 配下の既存ファイルは 1 つも変更しない`
+- `成果物は B 配下にのみ保存する`
+- `A 以外は調査しない`
+
+特に重要なのは、`A` を `cwd` にしないことです。`cwd=B` にして `--add-dir A` を使うと、A を読み取り対象、B を出力先として分けやすくなります。  
+ただし、プロンプトだけでは絶対保証にはならないため、A 配下を確実に保護したい場合は NTFS ACL などで読み取り専用にしてください。
+
 ### 既存 JSONL の手動取り込み
 
 ```bash

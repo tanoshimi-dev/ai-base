@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/rehop/.claude-tracking/**)",
+      "Bash(C:/Users/rehop/.pyenv/pyenv-win/versions/3.12.7/python3.EXE E:/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/sys/claude_tracking.py --db C:/Users/rehop/.claude-tracking/claude-tracking.db --logs-dir C:/Users/rehop/.claude-tracking/logs hook stop)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(C:/Users/rehop/.pyenv/pyenv-win/versions/3.12.7/python3.EXE E:/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/sys/claude_tracking.py hook stop --db C:/Users/rehop/.claude-tracking/claude-tracking.db --logs-dir C:/Users/rehop/.claude-tracking/logs)",
+      "Bash(C:/Users/rehop/.pyenv/pyenv-win/versions/3.12.7/python3.EXE E:/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/sys/claude_tracking.py hook --db C:/Users/rehop/.claude-tracking/claude-tracking.db --logs-dir C:/Users/rehop/.claude-tracking/logs stop)",
+      "Bash(C:/Users/rehop/.pyenv/pyenv-win/versions/3.12.7/python3.EXE *)",
+      "Bash(python3 *)",
+      "Bash(python sys/claude_tracking.py status)",
+      "Bash(python sys/claude_tracking.py recent 3)",
+      "PowerShell(& \"C:\\\\Users\\\\rehop\\\\.pyenv\\\\pyenv-win\\\\shims\\\\python3.BAT\" \"C:\\\\Users\\\\rehop\\\\AppData\\\\Local\\\\Temp\\\\check_db.py\")",
+      "Bash(git *)",
+      "Bash(\"C:/Users/rehop/.pyenv/pyenv-win/shims/python3.BAT\" \"E:/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/sys/claude_tracking.py\" hook --db \"C:/Users/rehop/.claude-tracking/claude-tracking.db\" --logs-dir \"C:/Users/rehop/.claude-tracking/logs\" post_tool_use)",
+      "Bash(\"C:/Users/rehop/.pyenv/pyenv-win/shims/python3.BAT\" \"E:/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/sys/claude_tracking.py\" hook --db \"C:/Users/rehop/.claude-tracking/claude-tracking.db\" --logs-dir \"C:/Users/rehop/.claude-tracking/logs\" stop)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(cat)",
+      "Bash(chmod +x /tmp/hook_debug.sh)",
+      "Read(//tmp/**)",
+      "Bash(C:/Users/rehop/.pyenv/pyenv-win/shims/python3.BAT E:/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/sys/claude_tracking.py hook --db C:/Users/rehop/.claude-tracking/claude-tracking.db --logs-dir C:/Users/rehop/.claude-tracking/logs stop)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(C:/Users/rehop/.pyenv/pyenv-win/shims/python3.BAT E:/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/sys/claude_tracking.py hook --db C:/Users/rehop/.claude-tracking/claude-tracking.db --logs-dir C:/Users/rehop/.claude-tracking/logs post_tool_use)"
+    ]
+  }
+}

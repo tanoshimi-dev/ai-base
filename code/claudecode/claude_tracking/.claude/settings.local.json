@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python claude_tracking.py --help)",
+      "Bash(python claude_tracking.py status)",
+      "Bash(python claude_tracking.py report)",
+      "Bash(python claude_tracking.py tools)",
+      "Bash(python \"E:\\\\dev\\\\vs_code\\\\products\\\\ai-base\\\\code\\\\claudecode\\\\claude_tracking\\\\sys\\\\claude_tracking.py\" --help)",
+      "Bash(python -c ' *)",
+      "Read(//d E:/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/**)",
+      "Bash(python test_parse.py)",
+      "Bash(python *)",
+      "Read(//mnt/e/dev/vs_code/products/ai-base/code/claudecode/claude_tracking/**)",
+      "Bash(python3 claude_tracking.py report --help)",
+      "Bash(python3 *)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
+    ]
+  }
+}

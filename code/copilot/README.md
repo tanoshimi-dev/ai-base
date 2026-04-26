@@ -1,0 +1,192 @@
+# copilot-tracking
+
+Copilot CLI を起動するときに OpenTelemetry の JSONL を自動で有効化し、終了後に SQLite へ取り込む小さな追跡ツールです。
+
+Node.js や Go の常駐プロセスは不要で、`copilot` をこのラッパー経由で起動するだけで次を記録します。
+
+- プロンプトごとの所要時間
+- prompt / response 本文
+- user role の instruction / prompt 本文
+- account
+- model
+- input / output / total tokens
+- tool call 回数と合計時間
+- context 使用量の近似値としての input tokens
+
+## ファイル
+
+- `copilot_tracking.py`: 収集とレポート本体
+- `copilot_tracking_db_monitor.ps1`: Windows 向け軽量ライブモニター
+- `copilot-track.sh`: macOS / Linux / WSL2 用ラッパー
+- `copilot-track.ps1`: Windows PowerShell 用ラッパー
+- `copilot_tracking.ps1`: `copilot-track.ps1` 互換の別名ラッパー
+- `sample-web-app`: Python の CLI タスク管理サンプル
+- `sample-go-cli-app`: Go の CLI タスク管理サンプル
+
+## 前提
+
+- `copilot` コマンドが使えること
+- Python 3 が使えること
+- Copilot CLI が OTel monitoring をサポートしていること
+
+`copilot-track.ps1` / `copilot-track.sh` は、起動したシェルの `PATH` から `copilot` を探します。`copilot` が見つからない場合は、そのシェルで Copilot CLI が使える状態にしてから実行してください。
+
+## すぐ使う
+
+### macOS / Linux / WSL2
+
+```bash
+cd /path/to/copilot-tracking
+chmod +x ./copilot-track.sh
+./copilot-track.sh
+```
+
+### Windows PowerShell
+
+```powershell
+Set-Location E:\dev\vs_code\products\hannari.dev\blog-contents\2604\0425\copilot-tracking
+.\copilot-track.ps1
+# または
+.\copilot_tracking.ps1
+```
+
+このラッパーは内部で次を設定してから `copilot` を起動します。
+
+- `COPILOT_OTEL_ENABLED=true`
+- `COPILOT_OTEL_FILE_EXPORTER_PATH=<session jsonl>`
+- `COPILOT_OTEL_EXPORTER_TYPE=file`
+- `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true`
+
+終了時に JSONL を SQLite に取り込みます。
+
+## 保存先
+
+既定ではホームディレクトリ配下に保存します。
+
+- DB: `~/.copilot-tracking/copilot-tracking.db`
+- 一時 JSONL: `~/.copilot-tracking/logs/`
+
+Windows では概ね次です。
+
+- DB: `%USERPROFILE%\.copilot-tracking\copilot-tracking.db`
+
+## レポートを見る
+
+### 直近の結果だけを見る
+
+```bash
+python3 copilot_tracking.py recent
+python3 copilot_tracking.py recent 5
+python3 copilot_tracking.py recent --live
+python3 copilot_tracking.py recent --live 5
+```
+
+```powershell
+python .\copilot_tracking.py recent
+python .\copilot_tracking.py recent 5
+python .\copilot_tracking.py recent --live
+python .\copilot_tracking.py recent --live 5
+```
+
+`recent` は直近 1 件の prompt / response を見やすく表示します。  
+件数を付けると直近 n 件を新しい順に確認できます。
+
+セッション終了前の確認には `--live` を使います。  
+これは SQLite ではなく `logs` 配下の最新 JSONL を直接読むので、進行中セッションの直近完了ターンも確認できます。
+
+### Windows で軽くライブ監視する
+
+```powershell
+.\copilot_tracking_db_monitor.ps1
+.\copilot_tracking_db_monitor.ps1 -Once -Tail 3
+.\copilot_tracking_db_monitor.ps1 -OtelFile "$env:USERPROFILE\.copilot-tracking\logs\20260425-213000-abcd1234.jsonl"
+```
+
+このスクリプトは Python や SQLite を起動せず、最新の OTel JSONL をそのまま監視します。  
+進行中セッションの完了ターンを軽く追いたいときは `copilot_tracking.py recent --live` よりこちらが向いています。
+
+### 直近の prompt 一覧
+
+```bash
+python3 copilot_tracking.py report
+python3 copilot_tracking.py report 3
+python3 copilot_tracking.py report --live
+python3 copilot_tracking.py report --live 3
+```
+
+```powershell
+py -3 .\copilot_tracking.py report
+python .\copilot_tracking.py report 3
+python .\copilot_tracking.py report --live
+python .\copilot_tracking.py report --live 3
+```
+
+`report --live` を使うと、進行中セッションの最新 JSONL を `report` 形式の一覧で確認できます。  
+一覧には account 列も表示されます。
+
+### セッション一覧
+
+```bash
+python3 copilot_tracking.py sessions
+```
+
+セッション一覧にも account 列を表示します。
+
+### 記録内容を全て消去
+
+```bash
+python3 copilot_tracking.py clear --yes
+```
+
+```powershell
+py -3 .\copilot_tracking.py clear --yes
+```
+
+これで SQLite DB と、残っている OTel JSONL をまとめて削除します。
+
+## エイリアス化して「copilot」で使う
+
+### bash / zsh
+
+```bash
+alias copilot="$PWD/copilot-track.sh"
+```
+
+### PowerShell
+
+```powershell
+function copilot { & "E:\dev\vs_code\products\hannari.dev\blog-contents\2604\0425\copilot-tracking\copilot-track.ps1" @args }
+```
+
+これで普段どおり `copilot` と打つだけで記録されます。
+
+## 補足
+
+- `context` の厳密な UI 表示値そのものではなく、OTel から取れる input tokens を `context_input_tokens` として保存します。
+- OTel の属性名は CLI バージョン差分があり得るので、このスクリプトは代表的な GenAI attribute 名を優先しつつ、複数候補を見にいくようにしてあります。
+- Copilot CLI の OTel に account が含まれないバージョンでは、`gh api user --jq .login` のアクティブアカウントを fallback として保存します。
+- 既存の SQLite に `account` 列が足りない、または過去データの account が空の場合は、起動時に自動でマイグレーションし、保存済み `raw_json` / 残っている OTel JSONL から補完できる範囲で復元します。
+- OTel JSONL は CLI バージョンにより `resourceSpans` 形式と 1 行 1 span 形式の両方があるため、このスクリプトはどちらも取り込めます。
+- prompt / response を保存するため、ログと DB に機密情報が残る可能性があります。必要なら `--no-capture-content` を使ってください。
+
+## 主なコマンド
+
+### 追跡付きで起動
+
+```bash
+python3 copilot_tracking.py wrap
+python3 copilot_tracking.py wrap -p "workflow-trackingのMCPサーバーを作る" --allow-all-tools
+python3 copilot_tracking.py wrap -- --help
+python3 copilot_tracking.py wrap --wrapper-help
+```
+
+`wrap` は追跡用オプション (`--db`, `--logs-dir`, `--keep-otel-file`, `--no-capture-content`) を先頭だけ解釈し、最初の未知の引数以降はそのまま `copilot` に渡します。  
+そのため、普段どおり `-p` や `--allow-all-tools` をそのまま書けます。
+
+### 既存 JSONL の手動取り込み
+
+```bash
+python3 copilot_tracking.py ingest \
+  --otel-file ~/.copilot-tracking/logs/example.jsonl \
+  --session-id manual-import-001
+```

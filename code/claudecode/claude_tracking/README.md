@@ -43,6 +43,9 @@ python sys\claude_tracking.py install
 オプション:
 
 ```bash
+# アカウント（メールアドレス）を記録する — 初回は必ず指定することを推奨
+python3 sys/claude_tracking.py install --account you@example.com
+
 # 保存場所を変える
 python3 sys/claude_tracking.py install \
   --db ~/mydata/claude.db \
@@ -51,9 +54,12 @@ python3 sys/claude_tracking.py install \
 # prompt / response テキストを保存しない
 python3 sys/claude_tracking.py install --no-capture-content
 
-# 既に登録済みでも強制的に上書き
-python3 sys/claude_tracking.py install --force
+# 既に登録済みでも強制的に上書き（--account を追加・変更した後も --force が必要）
+python3 sys/claude_tracking.py install --account you@example.com --force
 ```
+
+> **アカウントが NULL になる場合**  
+> Claude Code のフックペイロードにはアカウント情報が含まれないため、`--account` を指定せずに install すると `sessions.account` が NULL になります。`--account EMAIL --force` で再登録すると以降のターンから記録されます。既存の NULL 行は DB を直接 UPDATE してください。
 
 ### フックを解除する
 
@@ -103,7 +109,7 @@ python sys\claude_tracking.py recent 5
 出力例:
 
 ```
-[1] 2026-04-26T10:23:45+00:00  session=abc12345  account=-  model=claude-sonnet-4-6  ms=4231.0  turn=3  in=2150  out=380  cache_read=1800  tools=4
+[1] 2026-04-26T10:23:45+00:00  session=abc12345  account=you@example.com  model=claude-sonnet-4-6  ms=4231.0  turn=3  in=2150  out=380  cache_read=1800  tools=4
 prompt:
 Fix the authentication bug in login.py
 response:
@@ -123,9 +129,9 @@ python sys\claude_tracking.py report 10
 ```
 
 ```
-session_id  account  ended_at                   ms      model               turn  in_tok  out_tok  cache_read  tools  prompt
-----------  -------  -------------------------  ------  ------------------  ----  ------  -------  ----------  -----  ------
-abc12345    -        2026-04-26T10:23:45+00:00  4231.0  claude-sonnet-4-6   3     2150    380      1800        4      Fix the authenticati…
+session_id  account            ended_at                   ms      model               turn  in_tok  out_tok  cache_read  tools  prompt
+----------  -----------------  -------------------------  ------  ------------------  ----  ------  -------  ----------  -----  ------
+abc12345    you@example.com    2026-04-26T10:23:45+00:00  4231.0  claude-sonnet-4-6   3     2150    380      1800        4      Fix the authenticati…
 ```
 
 ### セッション一覧
@@ -191,6 +197,9 @@ Claude Code には**フック**と呼ばれる仕組みがあり、ツール実�
 
 ```
 install             フックを ~/.claude/settings.json に登録
+  --account EMAIL     アカウントメールを Stop フックコマンドに埋め込む（推奨）
+  --no-capture-content  prompt / response テキストを保存しない
+  --force             既存フックを強制上書き
 uninstall           フックを解除
 status              登録状態と DB 統計を表示
 recent [N]          直近 N ターンの詳細を表示（既定: 1）

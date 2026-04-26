@@ -21,7 +21,7 @@ at well-defined lifecycle points. This is the primary collection mechanism.
 | Token counts      | OTel LLM spans            | `stop` hook payload (`usage`) |
 | Tool usage        | OTel tool spans           | `post_tool_use` hook payload  |
 | Session boundary  | One CLI invocation        | One `claude` session (session_id) |
-| Account           | `gh api user` fallback    | `claude config` / env var     |
+| Account           | `gh api user` fallback    | `--account EMAIL` at install time (embedded in hook command) |
 
 ---
 
@@ -130,6 +130,13 @@ Invoked as: `claude-track <command> [options]`
 | `--logs-dir PATH`       | `~/.claude-tracking/logs/`           |
 | `--no-capture-content`  | Omit prompt/response/tool I/O text   |
 
+### `install`-only options
+
+| Option              | Description                                                                 |
+|---------------------|-----------------------------------------------------------------------------|
+| `--account EMAIL`   | Embeds the email into the Stop hook command so every session row is tagged. Claude Code hook payloads do not include account info, so this is the only reliable way to populate `sessions.account`. |
+| `--force`           | Re-write hooks even if already present. Required when changing `--account`. |
+
 ---
 
 ## Hook Installation (`install` command)
@@ -143,20 +150,24 @@ The `install` command adds hook entries to `~/.claude/settings.json`:
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "python /path/to/claude_tracking.py hook post_tool_use" }
+          { "type": "command", "command": "python /path/to/claude_tracking.py hook --db ... --logs-dir ... post_tool_use" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "python /path/to/claude_tracking.py hook stop" }
+          { "type": "command", "command": "python /path/to/claude_tracking.py hook --db ... --logs-dir ... stop --account you@example.com" }
         ]
       }
     ]
   }
 }
 ```
+
+> **Why `--account` is in the command string, not the payload:**  
+> Claude Code's Stop hook payload contains `session_id` and `transcript_path` but no user identity.  
+> The account email is embedded by `install --account EMAIL` once and replayed on every hook fire.
 
 The hook script reads JSON from stdin and appends the event to a per-session JSONL file,
 then calls the ingestion logic to upsert into SQLite.
@@ -182,22 +193,22 @@ claude_tracking/
 ## Implementation Phases
 
 ### Phase 1 — Hook Receiver & Storage (MVP)
-- [ ] Hook handler: reads stdin JSON, appends to per-session JSONL
-- [ ] Ingest: parses JSONL, upserts sessions/turns/tool_calls into SQLite
-- [ ] `install` / `uninstall` commands
-- [ ] `status` command
+- [x] Hook handler: reads stdin JSON, appends to per-session JSONL
+- [x] Ingest: parses JSONL, upserts sessions/turns/tool_calls into SQLite
+- [x] `install` / `uninstall` commands
+- [x] `status` command
 
 ### Phase 2 — Reporting
-- [ ] `recent [N]` — detailed turn view
-- [ ] `report [N]` — summary table
-- [ ] `sessions [N]` — session list
-- [ ] `tools [N]` — tool usage stats
+- [x] `recent [N]` — detailed turn view
+- [x] `report [N]` — summary table
+- [x] `sessions [N]` — session list
+- [x] `tools [N]` — tool usage stats
 
 ### Phase 3 — Polish
-- [ ] `--no-capture-content` flag
-- [ ] Account resolution (`claude config get account` / `CLAUDE_ACCOUNT` env var)
-- [ ] Shell wrappers (bash + PowerShell)
-- [ ] README documentation
+- [x] `--no-capture-content` flag
+- [x] Account resolution — `--account EMAIL` flag at install time (payload has no account info)
+- [x] Shell wrappers (bash + PowerShell)
+- [x] README documentation
 
 ---
 
@@ -213,10 +224,20 @@ claude_tracking/
 
 ---
 
-## Open Questions
+## Resolved Questions
 
-1. Does the `Stop` hook payload include the user prompt and assistant response text?
-   - If not, content capture may require reading `~/.claude/projects/*/conversations/*.json`
-2. Does `Stop` provide a reliable `turn_index` or must we derive it from event count?
-3. Is `session_id` stable across the full session (same value in all hooks for one `claude` run)?
-4. Cache token fields — confirm exact key names in Stop hook `usage` object.
+1. **Prompt/response text** — Stop payload does NOT include message text. Resolved by parsing the
+   transcript JSONL at `transcript_path` (included in the payload). User turns and assistant turns
+   are grouped into logical turns; tool-result-only user messages are skipped.
+
+2. **turn_index** — Not provided by the payload. Derived as `COUNT(*) + 1` from existing rows for
+   that `session_id` at the time the Stop hook fires.
+
+3. **session_id stability** — Confirmed stable: same value across all PostToolUse and Stop events
+   within one `claude` session.
+
+4. **Cache token field names** — Confirmed: `cache_read_input_tokens` and
+   `cache_creation_input_tokens` in the assistant message `usage` object inside the transcript.
+
+5. **Account** — Stop hook payload contains no user identity. Resolved by embedding `--account EMAIL`
+   in the hook command at install time via `install --account EMAIL --force`.

@@ -5,13 +5,14 @@ Copilot CLI を起動するときに OpenTelemetry の JSONL を自動で有効�
 Node.js や Go の常駐プロセスは不要で、`copilot` をこのラッパー経由で起動するだけで次を記録します。
 
 - プロンプトごとの所要時間
+- 各 prompt が同一セッション継続中かどうか
 - prompt / response 本文
 - user role の instruction / prompt 本文
 - account
 - model
 - input / output / total tokens
 - tool call 回数と合計時間
-- context 使用量の近似値としての input tokens
+- prompt ごとの context 使用量の近似値 (`context_input_tokens`)
 
 ## ファイル
 
@@ -91,6 +92,8 @@ python .\copilot_tracking.py recent --live 5
 `recent` は直近 1 件の prompt / response を見やすく表示します。  
 件数を付けると直近 n 件を新しい順に確認できます。
 
+各行には `same_sess` (その prompt が同一 CLI セッションの継続か), `sess_turn` (そのセッション内で何件目か), `ctx_in` (context 使用量の近似値) も表示します。
+
 セッション終了前の確認には `--live` を使います。  
 これは SQLite ではなく `logs` 配下の最新 JSONL を直接読むので、進行中セッションの直近完了ターンも確認できます。
 
@@ -122,7 +125,7 @@ python .\copilot_tracking.py report --live 3
 ```
 
 `report --live` を使うと、進行中セッションの最新 JSONL を `report` 形式の一覧で確認できます。  
-一覧には account 列も表示されます。
+一覧には account に加えて `same_sess` / `sess_turn` / `ctx_in` 列も表示されます。
 
 ### セッション一覧
 
@@ -162,7 +165,8 @@ function copilot { & "E:\dev\vs_code\products\hannari.dev\blog-contents\2604\042
 
 ## 補足
 
-- `context` の厳密な UI 表示値そのものではなく、OTel から取れる input tokens を `context_input_tokens` として保存します。
+- `same_sess=yes` は、その prompt より前に同じ `session_id` の turn が既にあることを表します。`session_id` は 1 回の `wrap` 実行単位です。
+- `context` の厳密な UI 表示値そのものではなく、OTel から取れる `context_input_tokens` を優先し、取れない場合は `input_tokens` を近似値として表示します。
 - OTel の属性名は CLI バージョン差分があり得るので、このスクリプトは代表的な GenAI attribute 名を優先しつつ、複数候補を見にいくようにしてあります。
 - Copilot CLI の OTel に account が含まれないバージョンでは、`gh api user --jq .login` のアクティブアカウントを fallback として保存します。
 - 既存の SQLite に `account` 列が足りない、または過去データの account が空の場合は、起動時に自動でマイグレーションし、保存済み `raw_json` / 残っている OTel JSONL から補完できる範囲で復元します。

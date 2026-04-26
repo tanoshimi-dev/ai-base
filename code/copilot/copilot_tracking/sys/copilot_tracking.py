@@ -1312,6 +1312,34 @@ def compact_display_text(value: Any, *, role: Optional[str] = None) -> str:
     return serialized or ""
 
 
+def format_same_session(value: bool) -> str:
+    return "yes" if value else "no"
+
+
+def context_tokens_for_display(turn: Dict[str, Any]) -> int:
+    return int(turn.get("context_input_tokens") or turn.get("input_tokens") or 0)
+
+
+def annotate_single_session_turns(
+    session_id: str,
+    turns: Sequence[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    annotated: List[Dict[str, Any]] = []
+    for session_turn, turn in enumerate(
+        sorted(turns, key=lambda item: item.get("started_at") or ""),
+        start=1,
+    ):
+        annotated.append(
+            {
+                **turn,
+                "session_id": session_id,
+                "session_turn": session_turn,
+                "same_session": session_turn > 1,
+            }
+        )
+    return annotated
+
+
 def print_recent_turns(rows: Sequence[Sequence[Any]]) -> int:
     if not rows:
         print("No tracked results found.")
@@ -1324,6 +1352,9 @@ def print_recent_turns(rows: Sequence[Sequence[Any]]) -> int:
             started_at,
             duration_ms_value,
             model,
+            same_session,
+            session_turn,
+            context_input_tokens,
             input_tokens,
             output_tokens,
             tool_calls,
@@ -1334,7 +1365,9 @@ def print_recent_turns(rows: Sequence[Sequence[Any]]) -> int:
             f"[{index}] {started_at}  session={session_id}  "
             f"account={account or '-'}  "
             f"model={model or '-'}  ms={duration_ms_value or 0}  "
-            f"in={input_tokens}  out={output_tokens}  tools={tool_calls}"
+            f"same_sess={same_session}  sess_turn={session_turn}  "
+            f"ctx_in={context_input_tokens}  in={input_tokens}  "
+            f"out={output_tokens}  tools={tool_calls}"
         )
         print("prompt:")
         print(compact_display_text(prompt, role="user") or "-")
@@ -1351,17 +1384,20 @@ def build_report_rows_from_turns(
     limit: int,
 ) -> List[Tuple[Any, ...]]:
     recent_turns = sorted(
-        turns,
+        annotate_single_session_turns(session_id, turns),
         key=lambda item: item.get("started_at") or "",
         reverse=True,
     )[:limit]
     return [
         (
-            session_id,
+            turn.get("session_id"),
             turn.get("account") or "",
             turn.get("started_at"),
             round(turn.get("duration_ms") or 0, 1),
             turn.get("model") or "",
+            format_same_session(bool(turn.get("same_session"))),
+            turn.get("session_turn") or 0,
+            context_tokens_for_display(turn),
             turn.get("input_tokens") or 0,
             turn.get("output_tokens") or 0,
             turn.get("tool_calls") or 0,
@@ -1376,7 +1412,20 @@ def run_report_command(args: argparse.Namespace) -> int:
         otel_file = args.otel_file or latest_otel_file(args.logs_dir)
         if otel_file is None:
             print_rows(
-                ["session_id", "account", "started_at", "ms", "model", "in_tok", "out_tok", "tools", "prompt"],
+                [
+                    "session_id",
+                    "account",
+                    "started_at",
+                    "ms",
+                    "model",
+                    "same_sess",
+                    "sess_turn",
+                    "ctx_in",
+                    "in_tok",
+                    "out_tok",
+                    "tools",
+                    "prompt",
+                ],
                 [],
             )
             return 0
@@ -1384,14 +1433,40 @@ def run_report_command(args: argparse.Namespace) -> int:
         session_id, turns = load_turns_from_otel_file(otel_file)
         if args.session_id and args.session_id != session_id:
             print_rows(
-                ["session_id", "account", "started_at", "ms", "model", "in_tok", "out_tok", "tools", "prompt"],
+                [
+                    "session_id",
+                    "account",
+                    "started_at",
+                    "ms",
+                    "model",
+                    "same_sess",
+                    "sess_turn",
+                    "ctx_in",
+                    "in_tok",
+                    "out_tok",
+                    "tools",
+                    "prompt",
+                ],
                 [],
             )
             return 0
 
         rows = build_report_rows_from_turns(session_id, turns, args.limit)
         print_rows(
-            ["session_id", "account", "started_at", "ms", "model", "in_tok", "out_tok", "tools", "prompt"],
+            [
+                "session_id",
+                "account",
+                "started_at",
+                "ms",
+                "model",
+                "same_sess",
+                "sess_turn",
+                "ctx_in",
+                "in_tok",
+                "out_tok",
+                "tools",
+                "prompt",
+            ],
             rows,
         )
         return 0
@@ -1404,6 +1479,34 @@ def run_report_command(args: argparse.Namespace) -> int:
             t.started_at,
             ROUND(t.duration_ms, 1),
             COALESCE(t.model, ''),
+            CASE
+                WHEN (
+                    SELECT COUNT(*)
+                    FROM turns t2
+                    WHERE t2.session_id = t.session_id
+                      AND (
+                        COALESCE(t2.started_at, '') < COALESCE(t.started_at, '')
+                        OR (
+                            COALESCE(t2.started_at, '') = COALESCE(t.started_at, '')
+                            AND t2.id <= t.id
+                        )
+                      )
+                ) > 1 THEN 'yes'
+                ELSE 'no'
+            END,
+            (
+                SELECT COUNT(*)
+                FROM turns t2
+                WHERE t2.session_id = t.session_id
+                  AND (
+                    COALESCE(t2.started_at, '') < COALESCE(t.started_at, '')
+                    OR (
+                        COALESCE(t2.started_at, '') = COALESCE(t.started_at, '')
+                        AND t2.id <= t.id
+                    )
+                  )
+            ),
+            COALESCE(t.context_input_tokens, t.input_tokens, 0),
             COALESCE(t.input_tokens, 0),
             COALESCE(t.output_tokens, 0),
             COALESCE(t.tool_calls, 0),
@@ -1421,7 +1524,20 @@ def run_report_command(args: argparse.Namespace) -> int:
     rows = conn.execute(query, params).fetchall()
     conn.close()
     print_rows(
-        ["session_id", "account", "started_at", "ms", "model", "in_tok", "out_tok", "tools", "prompt"],
+        [
+            "session_id",
+            "account",
+            "started_at",
+            "ms",
+            "model",
+            "same_sess",
+            "sess_turn",
+            "ctx_in",
+            "in_tok",
+            "out_tok",
+            "tools",
+            "prompt",
+        ],
         rows,
     )
     return 0
@@ -1440,17 +1556,20 @@ def run_recent_command(args: argparse.Namespace) -> int:
             return 0
 
         recent_turns = sorted(
-            turns,
+            annotate_single_session_turns(session_id, turns),
             key=lambda item: item.get("started_at") or "",
             reverse=True,
         )[: args.limit]
         rows = [
             (
-                session_id,
+                turn.get("session_id"),
                 turn.get("account") or "",
                 turn.get("started_at"),
                 round(turn.get("duration_ms") or 0, 1),
                 turn.get("model") or "",
+                format_same_session(bool(turn.get("same_session"))),
+                turn.get("session_turn") or 0,
+                context_tokens_for_display(turn),
                 turn.get("input_tokens") or 0,
                 turn.get("output_tokens") or 0,
                 turn.get("tool_calls") or 0,
@@ -1469,6 +1588,34 @@ def run_recent_command(args: argparse.Namespace) -> int:
             t.started_at,
             ROUND(t.duration_ms, 1),
             COALESCE(t.model, ''),
+            CASE
+                WHEN (
+                    SELECT COUNT(*)
+                    FROM turns t2
+                    WHERE t2.session_id = t.session_id
+                      AND (
+                        COALESCE(t2.started_at, '') < COALESCE(t.started_at, '')
+                        OR (
+                            COALESCE(t2.started_at, '') = COALESCE(t.started_at, '')
+                            AND t2.id <= t.id
+                        )
+                      )
+                ) > 1 THEN 'yes'
+                ELSE 'no'
+            END,
+            (
+                SELECT COUNT(*)
+                FROM turns t2
+                WHERE t2.session_id = t.session_id
+                  AND (
+                    COALESCE(t2.started_at, '') < COALESCE(t.started_at, '')
+                    OR (
+                        COALESCE(t2.started_at, '') = COALESCE(t.started_at, '')
+                        AND t2.id <= t.id
+                    )
+                  )
+            ),
+            COALESCE(t.context_input_tokens, t.input_tokens, 0),
             COALESCE(t.input_tokens, 0),
             COALESCE(t.output_tokens, 0),
             COALESCE(t.tool_calls, 0),

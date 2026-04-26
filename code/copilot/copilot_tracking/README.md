@@ -168,7 +168,7 @@ function copilot { & "E:\dev\vs_code\products\hannari.dev\blog-contents\2604\042
 - `same_sess=yes` は、その prompt より前に同じ `session_id` の turn が既にあることを表します。`session_id` は 1 回の `wrap` 実行単位です。
 - `context` の厳密な UI 表示値そのものではなく、OTel から取れる `context_input_tokens` を優先し、取れない場合は `input_tokens` を近似値として表示します。
 - OTel の属性名は CLI バージョン差分があり得るので、このスクリプトは代表的な GenAI attribute 名を優先しつつ、複数候補を見にいくようにしてあります。
-- Copilot CLI の OTel に account が含まれないバージョンでは、`gh api user --jq .login` のアクティブアカウントを fallback として保存します。
+- Copilot CLI の OTel に account が含まれないバージョンでは、`gh api user --jq .login` のアクティブアカウントを fallback として保存します。`gh` が未認証・対話待ち・ネットワーク待ちでも本処理を止めないよう、この fallback は短い timeout 付きの best-effort で実行します。
 - 既存の SQLite に `account` 列が足りない、または過去データの account が空の場合は、起動時に自動でマイグレーションし、保存済み `raw_json` / 残っている OTel JSONL から補完できる範囲で復元します。
 - OTel JSONL は CLI バージョンにより `resourceSpans` 形式と 1 行 1 span 形式の両方があるため、このスクリプトはどちらも取り込めます。
 - prompt / response を保存するため、ログと DB に機密情報が残る可能性があります。必要なら `--no-capture-content` を使ってください。

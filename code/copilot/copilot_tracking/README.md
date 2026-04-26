@@ -179,12 +179,13 @@ function copilot { & "E:\dev\vs_code\products\hannari.dev\blog-contents\2604\042
 
 ```bash
 python3 copilot_tracking.py wrap
+python3 copilot_tracking.py wrap -C ../workflow-tracking -p "workflow-trackingのMCPサーバーを作る" --allow-all-tools
 python3 copilot_tracking.py wrap -p "workflow-trackingのMCPサーバーを作る" --allow-all-tools
 python3 copilot_tracking.py wrap -- --help
 python3 copilot_tracking.py wrap --wrapper-help
 ```
 
-`wrap` は追跡用オプション (`--db`, `--logs-dir`, `--keep-otel-file`, `--no-capture-content`) を先頭だけ解釈し、最初の未知の引数以降はそのまま `copilot` に渡します。  
+`wrap` は追跡用オプション (`--db`, `--logs-dir`, `-C/--cwd`, `--keep-otel-file`, `--no-capture-content`) を先頭だけ解釈し、最初の未知の引数以降はそのまま `copilot` に渡します。  
 そのため、普段どおり `-p` や `--allow-all-tools` をそのまま書けます。
 
 ### 既存 JSONL の手動取り込み

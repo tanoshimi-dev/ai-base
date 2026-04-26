@@ -83,6 +83,13 @@ def configure_wrap_parser(wrap: argparse.ArgumentParser) -> None:
         help="Directory for raw OTel JSONL files.",
     )
     wrap.add_argument(
+        "-C",
+        "--cwd",
+        type=Path,
+        default=None,
+        help="Working directory to run the Copilot CLI command in.",
+    )
+    wrap.add_argument(
         "--keep-otel-file",
         action="store_true",
         help="Keep the per-session JSONL file after ingesting it.",
@@ -119,7 +126,7 @@ def build_wrap_parser(*, add_help: bool) -> argparse.ArgumentParser:
 
 def split_wrap_args(argv: Sequence[str]) -> Tuple[List[str], List[str]]:
     wrap_flags = {"--keep-otel-file", "--capture-content", "--no-capture-content", "--wrapper-help"}
-    wrap_value_options = {"--db", "--logs-dir"}
+    wrap_value_options = {"--db", "--logs-dir", "-C", "--cwd"}
     wrap_args: List[str] = []
     index = 0
 
@@ -1228,6 +1235,15 @@ def run_wrap_command(args: argparse.Namespace) -> int:
     session_id = dt.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]
     otel_file = logs_dir / f"{session_id}.jsonl"
     db_path: Path = args.db
+    working_dir: Optional[Path] = args.cwd
+    if working_dir is not None:
+        working_dir = working_dir.expanduser()
+        if not working_dir.exists():
+            print(f"error: working directory does not exist: {working_dir}", file=sys.stderr)
+            return 2
+        if not working_dir.is_dir():
+            print(f"error: working directory is not a directory: {working_dir}", file=sys.stderr)
+            return 2
 
     env = os.environ.copy()
     env["COPILOT_OTEL_ENABLED"] = "true"
@@ -1253,7 +1269,7 @@ def run_wrap_command(args: argparse.Namespace) -> int:
         return 127
 
     command[0] = executable
-    completed = subprocess.run(command, env=env)
+    completed = subprocess.run(command, env=env, cwd=working_dir)
 
     if not otel_file.exists():
         print(

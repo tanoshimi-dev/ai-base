@@ -57,14 +57,19 @@ def detect_active_github_login() -> Optional[str]:
     if not executable:
         return None
 
+    env = os.environ.copy()
+    env["GH_PROMPT_DISABLED"] = "1"
+
     try:
         completed = subprocess.run(
             [executable, "api", "user", "--jq", ".login"],
             capture_output=True,
             text=True,
             check=False,
+            env=env,
+            timeout=5,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return None
 
     if completed.returncode != 0:

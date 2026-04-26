@@ -319,10 +319,14 @@ def handle_hook_stop(
     db_path: Path,
     logs_dir: Path,
     capture_content: bool,
+    account: Optional[str] = None,
 ) -> None:
     """Invoked by the Claude Code Stop hook. Writes one turn row to the DB."""
     session_id = payload.get("session_id", "")
     transcript_path = payload.get("transcript_path", "")
+    # --account arg takes priority; fall back to payload fields if ever provided
+    if not account:
+        account = payload.get("account_uuid") or payload.get("account") or None
     if not session_id:
         return
 
@@ -379,13 +383,14 @@ def handle_hook_stop(
             # Upsert session
             conn.execute(
                 """
-                INSERT INTO sessions (session_id, started_at, ended_at, model, platform, cwd, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO sessions (session_id, started_at, ended_at, account, model, platform, cwd, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(session_id) DO UPDATE SET
                     ended_at = excluded.ended_at,
+                    account = COALESCE(sessions.account, excluded.account),
                     model = COALESCE(sessions.model, excluded.model)
                 """,
-                (session_id, started_at, ended_at, model, platform.platform(), cwd, now),
+                (session_id, started_at, ended_at, account, model, platform.platform(), cwd, now),
             )
 
             # Insert turn (ignore duplicate on re-fire)
@@ -502,6 +507,7 @@ def _build_hook_entries(
     db_path: Path,
     logs_dir: Path,
     capture_content: bool,
+    account: Optional[str] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     python = shutil.which("python3") or shutil.which("python") or "python3"
     # On Windows, Claude Code runs hooks via bash which strips backslashes.
@@ -514,6 +520,7 @@ def _build_hook_entries(
     logs = to_fwd(str(logs_dir.resolve()))
     python = to_fwd(python)
     content_flag = "" if capture_content else " --no-capture-content"
+    account_flag = f' --account "{account}"' if account else ""
 
     base = f'{python} "{script}"'
     db_args = f'--db "{db}" --logs-dir "{logs}"'
@@ -529,7 +536,7 @@ def _build_hook_entries(
         "Stop": [
             {
                 "hooks": [
-                    {"type": "command", "command": f"{base} hook {db_args} stop{content_flag}"},
+                    {"type": "command", "command": f"{base} hook {db_args} stop{content_flag}{account_flag}"},
                 ],
             }
         ],
@@ -541,11 +548,12 @@ def run_install_command(args: argparse.Namespace) -> int:
     db_path: Path = args.db.resolve()
     logs_dir: Path = args.logs_dir.resolve()
     capture_content: bool = args.capture_content
+    account: Optional[str] = getattr(args, "account", None) or None
     settings_path = claude_settings_path()
 
     settings = _load_settings(settings_path)
     hooks = settings.setdefault("hooks", {})
-    new_entries = _build_hook_entries(script_path, db_path, logs_dir, capture_content)
+    new_entries = _build_hook_entries(script_path, db_path, logs_dir, capture_content, account)
 
     changed = False
     for event_name, entries in new_entries.items():
@@ -558,8 +566,9 @@ def run_install_command(args: argparse.Namespace) -> int:
     if changed or getattr(args, "force", False):
         _save_settings(settings_path, settings)
         print(f"Installed claude-tracking hooks → {settings_path}")
-        print(f"  DB:   {db_path}")
-        print(f"  Logs: {logs_dir}")
+        print(f"  DB:      {db_path}")
+        print(f"  Logs:    {logs_dir}")
+        print(f"  Account: {account or '(not set — re-run with --account EMAIL to populate)'}")
         print(f"  Content capture: {'on' if capture_content else 'off'}")
     else:
         print("Hooks already up to date (use --force to re-install).")
@@ -882,6 +891,8 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 
     stop_p = hook_sub.add_parser("stop")
     _add_capture_args(stop_p)
+    stop_p.add_argument("--account", default=None, metavar="EMAIL",
+                        help="Account identifier embedded by install (do not set manually).")
 
     hook_sub.add_parser("post_tool_use")
 
@@ -889,6 +900,8 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     install_p = subparsers.add_parser("install", help="Register hooks in ~/.claude/settings.json.")
     _add_db_args(install_p)
     _add_capture_args(install_p)
+    install_p.add_argument("--account", default=None, metavar="EMAIL",
+                           help="Your account email. Embedded in the hook command so every turn is tagged.")
     install_p.add_argument("--force", action="store_true",
                            help="Re-write hooks even if already present.")
 
@@ -951,7 +964,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         except (json.JSONDecodeError, OSError):
             return 1
         if args.hook_event == "stop":
-            handle_hook_stop(payload, args.db, args.logs_dir, args.capture_content)
+            handle_hook_stop(
+                payload, args.db, args.logs_dir, args.capture_content,
+                account=getattr(args, "account", None) or None,
+            )
         elif args.hook_event == "post_tool_use":
             handle_hook_post_tool_use(payload, args.logs_dir)
         return 0

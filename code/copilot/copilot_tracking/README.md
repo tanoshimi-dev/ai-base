@@ -1,3 +1,5 @@
+ph2
+
 # copilot-tracking
 
 Copilot CLI を起動するときに OpenTelemetry の JSONL を自動で有効化し、終了後に SQLite へ取り込む小さな追跡ツールです。

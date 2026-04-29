@@ -1,15 +1,17 @@
 <div align="center">
 
+bug-fix
+
 ```
   █████╗ ██╗    ██████╗  █████╗ ███████╗███████╗
  ██╔══██╗██║    ██╔══██╗██╔══██╗██╔════╝██╔════╝
- ███████║██║    ███████╔╝███████║███████╗█████╗  
- ██╔══██║██║    ██╔══██╗██╔══██║╚════██║██╔══╝  
+ ███████║██║    ███████╔╝███████║███████╗█████╗
+ ██╔══██║██║    ██╔══██╗██╔══██║╚════██║██╔══╝
  ██║  ██║██║    ██████╔╝██║  ██║███████║███████╗
  ╚═╝  ╚═╝╚═╝   ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
 ```
 
-### *AI-powered developer tools — tracking, history, diagnostics*
+### _AI-powered developer tools — tracking, history, diagnostics_
 
 ![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)
@@ -39,12 +41,12 @@ Claude Code・GitHub Copilot・Gemini CLI など、複数のツールにまた�
 
 ## ツール一覧
 
-| ツール | 対象 | カテゴリ | 説明 |
-|--------|------|----------|------|
-| [claude-tracking](#-claude-tracking) | Claude Code | 📊 Tracking | ターンごとのトークン・ツール使用量を SQLite に自動記録 |
-| [session-vault](#-session-vault) | Claude Code | 🗄️ History | 会話履歴の保存・検索・エクスポート・ブラウザ表示 |
-| [copilot-tracking](#-copilot-tracking) | GitHub Copilot | 📊 Tracking | OTel JSONL を取り込み SQLite に記録 |
-| [rn-build-doctor](#-rn-build-doctor) | Gemini CLI | 🩺 Diagnostics | React Native ビルドエラーをエキスパート診断する 20 コマンド |
+| ツール                                 | 対象           | カテゴリ       | 説明                                                        |
+| -------------------------------------- | -------------- | -------------- | ----------------------------------------------------------- |
+| [claude-tracking](#-claude-tracking)   | Claude Code    | 📊 Tracking    | ターンごとのトークン・ツール使用量を SQLite に自動記録      |
+| [session-vault](#-session-vault)       | Claude Code    | 🗄️ History     | 会話履歴の保存・検索・エクスポート・ブラウザ表示            |
+| [copilot-tracking](#-copilot-tracking) | GitHub Copilot | 📊 Tracking    | OTel JSONL を取り込み SQLite に記録                         |
+| [rn-build-doctor](#-rn-build-doctor)   | Gemini CLI     | 🩺 Diagnostics | React Native ビルドエラーをエキスパート診断する 20 コマンド |
 
 ---
 
@@ -115,14 +117,14 @@ Edit        67     24.1    1614.7
 Claude Code の MCP プロトコルを使い、会話履歴をプロジェクトごとに SQLite へ永続化します。  
 スラッシュコマンドで保存・検索・エクスポートがすべてエディタ内で完結します。
 
-| コマンド | 説明 |
-|----------|------|
-| `/session-vault:save` | 現在の会話を保存 |
-| `/session-vault:history` | 保存済み会話を検索 |
-| `/session-vault:extract` | 特定の会話を取り出す |
-| `/session-vault:export` | Markdown / JSON でエクスポート |
-| `/session-vault:viewer` | ブラウザで一覧表示 |
-| `/session-vault:vault-clear` | 保存済みデータを削除 |
+| コマンド                     | 説明                           |
+| ---------------------------- | ------------------------------ |
+| `/session-vault:save`        | 現在の会話を保存               |
+| `/session-vault:history`     | 保存済み会話を検索             |
+| `/session-vault:extract`     | 特定の会話を取り出す           |
+| `/session-vault:export`      | Markdown / JSON でエクスポート |
+| `/session-vault:viewer`      | ブラウザで一覧表示             |
+| `/session-vault:vault-clear` | 保存済みデータを削除           |
 
 📄 詳細: [`code/claudecode/01/session-vault/README.md`](code/claudecode/01/session-vault/README.md)
 
@@ -190,12 +192,12 @@ ai-base/
 
 ## 前提条件
 
-| ツール | 必要な環境 |
-|--------|-----------|
-| claude-tracking | Python 3（外部ライブラリ不要）, Claude Code CLI |
-| session-vault | Node.js 20+, Claude Code CLI |
+| ツール           | 必要な環境                                         |
+| ---------------- | -------------------------------------------------- |
+| claude-tracking  | Python 3（外部ライブラリ不要）, Claude Code CLI    |
+| session-vault    | Node.js 20+, Claude Code CLI                       |
 | copilot-tracking | Python 3（外部ライブラリ不要）, GitHub Copilot CLI |
-| rn-build-doctor | Node.js 20+, Gemini CLI |
+| rn-build-doctor  | Node.js 20+, Gemini CLI                            |
 
 ---
 
